@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#2F4F42">
+<meta name="description" content="Registro y envío por correo del inventario de equipos de campo.">
+<title>Inventario de Equipos</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventario">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+<script src="assets/xlsx.full.min.js"></script>
+<script src="assets/jsQR.js"></script>
+<script src="assets/email.min.js"></script>
+<script src="assets/exceljs.min.js"></script>
+<script src="assets/qrcode.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+:root{
+  --bg: #F2F4F1;
+  --surface: #FFFFFF;
+  --ink: #1B2420;
+  --ink-soft: #45524B;
+  --muted: #6B7A70;
+  --line: #DBE1D8;
+  --primary: #2F4F42;
+  --primary-ink: #F7F9F6;
+  --accent: #C98A3B;
+  --accent-ink: #2A1B04;
+  --good: #3E7D51;
+  --warn: #C98A3B;
+  --bad: #A23E36;
+  --off: #8A968F;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --shadow-1: 0 1px 2px rgba(27,36,32,0.08);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+h1,h2,h3,.headline{
+  font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+button, input, select, textarea{ font-family: inherit; font-size: 16px; color: inherit; }
+button{ cursor:pointer; }
+::selection{ background: var(--accent); color: var(--accent-ink); }
+
+#app{
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100%;
+  display:flex;
+  flex-direction:column;
+  background: var(--bg);
+}
+
+/* ---------- App bar ---------- */
+.app-bar{
+  position: sticky; top:0; z-index: 20;
+  background: var(--primary);
+  color: var(--primary-ink);
+  padding: calc(14px + var(--safe-top)) 18px 14px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+}
+.app-bar .brand-row{ display:flex; align-items:center; gap:10px; min-width:0; }
+.brand-badge{
+  flex:none; display:inline-flex; align-items:center; justify-content:center;
+  background:#fff; border-radius:8px; padding:5px 9px;
+  box-shadow: var(--shadow-1);
+}
+.brand-badge img{ display:block; height:20px; width:auto; }
+.app-bar .titles{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.app-bar h1{ font-size: 20px; color: var(--primary-ink); }
+.app-bar .subtitle{ font-size: 12.5px; color: rgba(247,249,246,0.72); }
+.count-pill{
+  font-family:"IBM Plex Sans Condensed", sans-serif;
+  font-weight:600; font-size:13px;
+  background: rgba(247,249,246,0.14);
+  border:1px solid rgba(247,249,246,0.28);
+  color: var(--primary-ink);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space:nowrap;
+}
+.form-logo{ display:flex; justify-content:center; margin-bottom:16px; }
+.form-logo img{ height:30px; width:auto; }
+
+/* ---------- Views ---------- */
+main{ flex:1; padding: 14px 14px calc(90px + var(--safe-bottom)); }
+.view{ display:none; }
+.view.active{ display:block; animation: fade-in .18s ease-out; }
+@keyframes fade-in{ from{ opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+.section-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin: 4px 2px 10px;
+}
+.section-head h2{ font-size: 15px; color: var(--ink-soft); }
+
+/* ---------- Search / toolbar ---------- */
+.toolbar{ display:flex; gap:8px; margin-bottom:12px; }
+.search-box{
+  flex:1;
+  display:flex; align-items:center; gap:8px;
+  background: var(--surface);
+  border:1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 10px 12px;
+}
+.search-box input{ border:none; outline:none; flex:1; background:transparent; color:var(--ink); }
+.search-box svg{ flex:none; opacity:0.55; }
+
+/* ---------- Equipment list ---------- */
+.equip-list{ display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line); border-radius: var(--radius-m); overflow:hidden; }
+.equip-row{
+  display:flex; align-items:center; gap:12px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--off);
+  border-bottom: 1px solid var(--line);
+  background:var(--surface);
+}
+.equip-row:last-child{ border-bottom:none; }
+.equip-row.estado-bueno{ border-left-color: var(--good); }
+.equip-row.estado-regular{ border-left-color: var(--warn); }
+.equip-row.estado-reparacion{ border-left-color: var(--warn); }
+.equip-row.estado-baja{ border-left-color: var(--bad); }
+
+.equip-thumb{
+  width:44px; height:44px; border-radius: var(--radius-s);
+  background: var(--bg); border:1px solid var(--line);
+  object-fit:cover; flex:none;
+}
+.equip-thumb.placeholder{ display:flex; align-items:center; justify-content:center; color:var(--off); }
+.equip-info{ flex:1; min-width:0; }
+.equip-info .name{ font-weight:600; font-size:14.5px; }
+.equip-info .meta{ font-size:12.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.equip-code{
+  font-family:"IBM Plex Sans Condensed", sans-serif;
+  font-size:11.5px; color:var(--muted);
+  border:1px solid var(--line); border-radius:4px;
+  padding: 1px 6px; margin-top:4px; display:inline-block;
+}
+.chev{ color: var(--off); flex:none; }
+
+.empty-state{
+  text-align:center; padding: 46px 20px;
+  color: var(--muted);
+}
+.empty-state .headline{ color: var(--ink-soft); font-size:16px; margin-bottom:6px; }
+.empty-state p{ font-size: 13.5px; line-height:1.5; margin:0; }
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border-radius: var(--radius-m);
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  font-weight:600; font-size:14.5px;
+  transition: transform .06s ease;
+}
+.btn:active{ transform: scale(0.97); }
+.btn-primary{ background: var(--primary); color: var(--primary-ink); }
+.btn-accent{ background: var(--accent); color: var(--accent-ink); }
+.btn-outline{ background: transparent; border-color: var(--line); color: var(--ink); }
+.btn-ghost{ background: transparent; color: var(--primary); font-weight:600; padding: 10px 6px; }
+.btn-danger{ background: transparent; color: var(--bad); border-color: rgba(162,62,54,0.35); }
+.btn-block{ width:100%; }
+.btn[disabled]{ opacity:0.5; pointer-events:none; }
+.btn-row{ display:flex; gap:10px; }
+
+.fab{
+  position: fixed; right: 20px; bottom: calc(84px + var(--safe-bottom));
+  width:56px; height:56px; border-radius:50%;
+  background: var(--accent); color: var(--accent-ink);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 14px rgba(27,36,32,0.28);
+  z-index: 25; border:none;
+  max-width: 528px;
+}
+
+/* ---------- Cards / panels ---------- */
+.card{ background: var(--surface); border:1px solid var(--line); border-radius: var(--radius-m); padding:16px; }
+.card + .card{ margin-top:12px; }
+.card h3{ font-size:14px; color:var(--ink-soft); margin-bottom:10px; }
+.field{ margin-bottom:14px; }
+.field:last-child{ margin-bottom:0; }
+.field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; font-weight:500; }
+.field input[type=text], .field input[type=email], .field input[type=url], .field select, .field textarea{
+  width:100%; border:1px solid var(--line); border-radius: var(--radius-s);
+  padding: 11px 12px; background: var(--bg); outline:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{ border-color: var(--primary); background:var(--surface); }
+.field textarea{ resize:vertical; min-height:70px; }
+.field .hint{ font-size:11.5px; color:var(--off); margin-top:5px; line-height:1.45; }
+.status-choices{ display:flex; gap:8px; flex-wrap:wrap; }
+.status-chip{
+  border:1px solid var(--line); border-radius:999px; padding:8px 13px;
+  font-size:13px; font-weight:500; background:var(--bg); color:var(--ink-soft);
+}
+.status-chip[data-active="true"]{ border-color: currentColor; }
+.status-chip.estado-bueno[data-active="true"]{ background: rgba(62,125,81,0.13); color: var(--good); }
+.status-chip.estado-regular[data-active="true"]{ background: rgba(201,138,59,0.15); color:#8a5c1f; }
+.status-chip.estado-reparacion[data-active="true"]{ background: rgba(201,138,59,0.15); color:#8a5c1f; }
+.status-chip.estado-baja[data-active="true"]{ background: rgba(162,62,54,0.13); color: var(--bad); }
+
+.photo-picker{ display:flex; gap:10px; align-items:center; }
+.photo-preview{
+  width:76px; height:76px; border-radius: var(--radius-s);
+  border:1px dashed var(--line); background:var(--bg);
+  display:flex; align-items:center; justify-content:center; color:var(--off);
+  object-fit:cover; flex:none; overflow:hidden;
+}
+.photo-preview img{ width:100%; height:100%; object-fit:cover; }
+
+/* ---------- Bottom nav ---------- */
+.bottom-nav{
+  position: fixed; left:0; right:0; bottom:0; z-index: 30;
+  max-width: 560px; margin: 0 auto;
+  background: var(--surface);
+  border-top:1px solid var(--line);
+  padding-bottom: var(--safe-bottom);
+  display:flex;
+}
+.nav-btn{
+  flex:1; background:none; border:none;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding: 8px 2px 7px; color: var(--off);
+  font-size:10px; font-weight:500;
+}
+.nav-btn[aria-current="true"]{ color: var(--primary); }
+.nav-btn svg{ width:20px; height:20px; }
+
+/* ---------- Modals / sheets ---------- */
+.overlay{
+  position: fixed; inset:0; background: rgba(15,20,17,0.5);
+  display:none; align-items:flex-end; justify-content:center; z-index: 50;
+}
+.overlay.active{ display:flex; }
+.sheet{
+  width:100%; max-width: 560px;
+  background: var(--bg);
+  border-radius: 16px 16px 0 0;
+  max-height: 92vh; overflow-y:auto;
+  padding: 16px 16px calc(20px + var(--safe-bottom));
+  animation: sheet-up .18s ease-out;
+}
+@keyframes sheet-up{ from{ transform: translateY(16px); opacity:0.4; } to{ transform:none; opacity:1; } }
+.sheet-handle{ width:36px; height:4px; background: var(--line); border-radius:2px; margin: 2px auto 14px; }
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sheet-head h2{ font-size:17px; }
+.icon-btn{ background:none; border:none; padding:6px; color:var(--ink-soft); }
+
+.scan-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:none; flex-direction:column; }
+.scan-overlay.active{ display:flex; }
+.scan-overlay video{ flex:1; width:100%; object-fit:cover; }
+.scan-frame{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(72vw,300px); height:min(72vw,300px);
+  border:3px solid var(--accent); border-radius:18px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.42);
+}
+.scan-top{
+  position:absolute; top: calc(16px + var(--safe-top)); left:0; right:0;
+  display:flex; justify-content:space-between; align-items:center; padding: 0 16px; z-index:2;
+}
+.scan-top .icon-btn{ background: rgba(0,0,0,0.4); border-radius:50%; color:#fff; }
+.scan-hint{
+  position:absolute; bottom: calc(40px + var(--safe-bottom)); left:0; right:0;
+  text-align:center; color:#fff; font-size:13.5px; padding: 0 30px;
+}
+
+/* ---------- Toast ---------- */
+.toast{
+  position: fixed; left:50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%);
+  background: var(--ink); color: var(--bg);
+  padding: 11px 18px; border-radius: 999px; font-size:13.5px;
+  z-index: 80; opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease;
+  max-width: 88%; text-align:center; box-shadow: var(--shadow-1);
+}
+.toast.show{ opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+/* ---------- Catalog rows ---------- */
+.cat-row{ display:flex; justify-content:space-between; align-items:center; padding:11px 14px; border-bottom:1px solid var(--line); }
+.cat-row:last-child{ border-bottom:none; }
+.cat-row .c-name{ font-size:14px; font-weight:500; }
+.cat-row .c-sub{ font-size:12px; color:var(--muted); }
+.cat-row button{ background:var(--bg); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:12.5px; color:var(--primary); font-weight:600; }
+
+.divider{ height:1px; background:var(--line); margin: 16px 0; border:none; }
+.small-note{ font-size:12px; color:var(--off); line-height:1.5; }
+.badge-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; }
+.link-inline{ color: var(--primary); font-weight:600; text-decoration: underline; text-underline-offset:2px; }
+
+@media (min-width: 560px){
+  .app-bar, main, .bottom-nav{ border-left:1px solid var(--line); border-right:1px solid var(--line); }
+}
+
+.overlay.center{ align-items:center; padding: 20px; }
+.overlay.center .sheet{ border-radius:16px; max-width:480px; width:100%; }
+.field-row{ display:flex; gap:10px; }
+.field-row > .field{ flex:1; min-width:0; }
+.qr-flag{
+  display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+  color: var(--primary); background: rgba(47,79,66,0.08); border:1px solid rgba(47,79,66,0.25);
+  padding: 6px 11px; border-radius:999px; margin-top:2px;
+}
+.qr-flag button{ background:none; border:none; color:var(--bad); font-weight:700; padding:0 0 0 4px; font-size:13px; }
+.onboarding-intro{ font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:14px; }
+.qty-pill{
+  font-family:"IBM Plex Sans Condensed", sans-serif; font-weight:700; font-size:12px;
+  background: var(--bg); border:1px solid var(--line); border-radius:6px;
+  padding: 2px 7px; color: var(--ink-soft); flex:none;
+}
+.google-account{ display:flex; align-items:center; gap:12px; padding:4px 2px; }
+.google-avatar{ width:44px; height:44px; border-radius:50%; object-fit:cover; background:var(--bg); border:1px solid var(--line); flex:none; }
+.google-avatar.placeholder{ display:flex; align-items:center; justify-content:center; color:var(--off); font-weight:700; font-size:16px; }
+.google-info{ flex:1; min-width:0; }
+.google-info .g-name{ font-weight:600; font-size:14px; }
+.google-info .g-email{ font-size:12.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.btn-google{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; padding:11px 16px; border-radius:var(--radius-m);
+  background:#fff; border:1px solid var(--line); font-weight:600; font-size:14.5px; color:#1f1f1f;
+}
+.date-dmy{ display:flex; gap:8px; align-items:flex-end; }
+.date-dmy .date-part{ display:flex; flex-direction:column; gap:6px; }
+.date-dmy .date-part input{
+  border:1px solid var(--line); border-radius:var(--radius-s); background:var(--bg);
+  padding:11px 8px; text-align:center; outline:none;
+}
+.date-dmy .date-part input:focus{ border-color:var(--primary); background:var(--surface); }
+.date-dmy .p-dia input, .date-dmy .p-mes input{ width:52px; }
+.date-dmy .p-anio input{ width:74px; }
+.date-dmy .date-part label{ font-size:10.5px; color:var(--off); text-align:center; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+.date-dmy .sep{ padding-bottom:12px; color:var(--off); font-weight:700; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="app-bar">
+    <div class="brand-row">
+      <span class="brand-badge"><img src="assets/logo-zener.png" alt="Zener"></span>
+      <div class="titles">
+        <h1>Inventario de Equipos</h1>
+        <span class="subtitle" id="subtitleUser">Configura tu perfil en Ajustes</span>
+      </div>
+    </div>
+    <span class="count-pill" id="countPill">0 equipos</span>
+  </header>
+
+  <main>
+
+    <!-- ========== VISTA: INVENTARIO ========== -->
+    <section class="view active" id="view-inventario">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar por descripción o código">
+        </div>
+      </div>
+
+      <div id="inventarioListWrap"></div>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary btn-block" id="btnAbrirEnvio">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+        Enviar inventario por correo
+      </button>
+      <p class="small-note" id="lastSentNote" style="text-align:center;margin-top:8px;"></p>
+      <button class="btn btn-outline btn-block" id="btnFinalizarInventario" style="margin-top:10px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        Finalizar inventario y empezar uno nuevo
+      </button>
+      <p class="hint" style="text-align:center;margin-top:6px;">Guarda este inventario en el Historial y vacía la lista para empezar otro (no se acumula).</p>
+    </section>
+
+    <!-- ========== VISTA: AÑADIR ========== -->
+    <section class="view" id="view-anadir">
+      <div class="form-logo"><img src="assets/logo-zener.png" alt="Zener"></div>
+      <div class="section-head"><h2 id="formTitle">Nuevo equipo</h2></div>
+
+      <button class="btn btn-accent btn-block" id="btnScanQR" style="margin-bottom:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M17 3h3a1 1 0 0 1 1 1v3"/><path d="M21 17v3a1 1 0 0 1-1 1h-3"/><path d="M7 21H4a1 1 0 0 1-1-1v-3"/><rect x="7" y="7" width="4" height="4"/><rect x="13" y="7" width="4" height="4"/><rect x="7" y="13" width="4" height="4"/><rect x="13" y="13" width="4" height="4"/></svg>
+        Escanear código QR del equipo
+      </button>
+      <button class="btn btn-outline btn-block" id="btnSubirFotoQR" style="margin-bottom:8px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>
+        Subir foto del QR
+      </button>
+      <input type="file" accept="image/*" capture="environment" id="fotoQRInput" style="display:none;">
+      <p class="hint" style="margin:0 0 14px;">Se leen los 8 primeros caracteres del QR como código de producto, se busca su descripción en el catálogo y se guarda el QR completo leído. Si la cámara en directo no funciona en tu navegador, usa «Subir foto del QR».</p>
+
+      <div class="card">
+        <div class="field" id="catalogPickWrap" style="display:none;">
+          <label for="catalogPick">Buscar en el catálogo (opcional)</label>
+          <input type="text" id="catalogPick" placeholder="Escribe un código o descripción del catálogo">
+          <div id="catalogSuggestions"></div>
+        </div>
+
+        <div id="qrFlagWrap" style="display:none;margin-bottom:14px;">
+          <span class="qr-flag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            QR completo guardado
+            <button type="button" id="btnQuitarQR">Quitar</button>
+          </span>
+        </div>
+
+        <div class="field">
+          <label for="fDescripcion">Descripción del equipo</label>
+          <input type="text" id="fDescripcion" placeholder="Ej. Router portátil 4G">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="fCodigo">Código de producto</label>
+            <input type="text" id="fCodigo" placeholder="Ej. EQP10020">
+          </div>
+          <div class="field" style="max-width:110px;">
+            <label for="fCantidad">Cantidad</label>
+            <input type="text" inputmode="numeric" id="fCantidad" value="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="fMarca">Marca (opcional)</label>
+            <input type="text" id="fMarca" placeholder="Ej. TP-Link">
+          </div>
+          <div class="field">
+            <label for="fModelo">Modelo (opcional)</label>
+            <input type="text" id="fModelo" placeholder="Ej. Archer C6">
+          </div>
+        </div>
+        <div class="field">
+          <label for="fUbicacion">Ubicación asignada</label>
+          <input type="text" id="fUbicacion" placeholder="Ej. Stand centro comercial Norte">
+        </div>
+        <div class="field">
+          <label>Estado del equipo</label>
+          <div class="status-choices" id="statusChoices">
+            <button type="button" class="status-chip estado-bueno" data-value="bueno">Bueno</button>
+            <button type="button" class="status-chip estado-regular" data-value="regular">Regular</button>
+            <button type="button" class="status-chip estado-reparacion" data-value="reparacion">En reparación</button>
+            <button type="button" class="status-chip estado-baja" data-value="baja">Baja</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Foto del equipo</label>
+          <div class="photo-picker">
+            <div class="photo-preview" id="photoPreview">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>
+            </div>
+            <input type="file" accept="image/*" capture="environment" id="fFoto" style="display:none;">
+            <button type="button" class="btn btn-outline" id="btnTomarFoto">Hacer / elegir foto</button>
+            <button type="button" class="btn-ghost" id="btnQuitarFoto" style="display:none;">Quitar</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="fNotas">Notas (opcional)</label>
+          <textarea id="fNotas" placeholder="Observaciones adicionales"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-outline" id="btnCancelarForm" style="flex:1;">Cancelar</button>
+        <button class="btn btn-primary" id="btnGuardarEquipo" style="flex:2;">Guardar equipo</button>
+      </div>
+      <button class="btn btn-danger btn-block" id="btnEliminarEquipo" style="display:none;margin-top:10px;">Eliminar este equipo</button>
+    </section>
+
+    <!-- ========== VISTA: CATÁLOGO ========== -->
+    <section class="view" id="view-catalogo">
+      <div class="form-logo"><img src="assets/logo-zener.png" alt="Zener"></div>
+      <div class="section-head"><h2>Catálogo (código + descripción)</h2></div>
+      <div class="card">
+        <p class="small-note" id="catalogStatus">Aún no se ha descargado ningún catálogo.</p>
+        <div class="field" style="margin-top:12px;">
+          <label for="spUrl">Enlace público al Excel de SharePoint</label>
+          <input type="url" id="spUrl" placeholder="https://empresa.sharepoint.com/.../catalogo.xlsx">
+          <p class="hint">Se guarda en este dispositivo. Descargar el catálogo aquí (en vez de leerlo por internet cada vez) hace mucho más rápida la búsqueda al escanear un QR.</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" id="btnAbrirSP" style="flex:1;">1. Descargar Excel</button>
+        </div>
+        <div class="divider"></div>
+        <label class="hint" style="display:block;margin-bottom:8px;">2. Cuando el Excel esté descargado (carpeta Descargas), impórtalo aquí para dejarlo listo en el dispositivo:</label>
+        <input type="file" accept=".xlsx,.xls,.csv" id="spFile" style="display:none;">
+        <button class="btn btn-primary btn-block" id="btnImportarSP">Actualizar catálogo del dispositivo</button>
+        <p class="hint" style="margin-top:10px;">Se aceptan columnas: código y descripción (cualquier orden, mayúsculas/minúsculas indiferentes). Si además trae marca/modelo, también se aprovechan.</p>
+      </div>
+
+      <div class="section-head" style="margin-top:18px;">
+        <h2 id="catalogCountLabel">0 códigos en catálogo</h2>
+      </div>
+      <div class="equip-list" id="catalogListWrap"></div>
+    </section>
+
+    <!-- ========== VISTA: HISTORIAL ========== -->
+    <section class="view" id="view-historial">
+      <div class="section-head"><h2>Inventarios finalizados</h2></div>
+      <p class="hint" style="margin:-4px 0 14px;">Cada vez que pulsas «Finalizar inventario» en la pestaña Inventario, se guarda aquí una copia y la lista de trabajo se vacía.</p>
+      <div id="historialListWrap"></div>
+    </section>
+
+    <!-- ========== VISTA: AJUSTES ========== -->
+    <section class="view" id="view-ajustes">
+      <div class="form-logo"><img src="assets/logo-zener.png" alt="Zener"></div>
+      <div class="section-head"><h2>Datos del RRPP / Empresa colaboradora</h2></div>
+      <div class="card">
+        <div class="field">
+          <label for="sNombre">Nombre del empleado o de la empresa</label>
+          <input type="text" id="sNombre" placeholder="Nombre y apellidos, o razón social">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="sEmpresa">Empresa / RRPP</label>
+            <input type="text" id="sEmpresa" placeholder="Nombre del RRPP">
+          </div>
+          <div class="field">
+            <label for="sProvincia">Provincia</label>
+            <input type="text" id="sProvincia" placeholder="Ej. Valencia">
+          </div>
+        </div>
+        <div class="field">
+          <label for="sClave">Clave asignada</label>
+          <input type="text" id="sClave" placeholder="Código asignado por la empresa">
+        </div>
+        <div class="field">
+          <label>Fecha del inventario (día / mes / año)</label>
+          <div class="date-dmy">
+            <div class="date-part p-dia"><label for="sFechaDia">Día</label><input type="text" inputmode="numeric" maxlength="2" id="sFechaDia" placeholder="DD"></div>
+            <span class="sep">/</span>
+            <div class="date-part p-mes"><label for="sFechaMes">Mes</label><input type="text" inputmode="numeric" maxlength="2" id="sFechaMes" placeholder="MM"></div>
+            <span class="sep">/</span>
+            <div class="date-part p-anio"><label for="sFechaAnio">Año</label><input type="text" inputmode="numeric" maxlength="4" id="sFechaAnio" placeholder="AAAA"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="sCorreoRemitente">Correo desde el que se envía</label>
+          <input type="email" id="sCorreoRemitente" placeholder="tucorreo@empresa.com">
+        </div>
+        <div class="field">
+          <label for="sEmailDestino">Correo de destino del inventario</label>
+          <input type="email" id="sEmailDestino" placeholder="buzon@empresa.com">
+          <p class="hint">Aquí llegará el inventario cuando pulses "Enviar".</p>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:18px;">
+        <h2>Cuenta de Google (envío real desde Gmail)</h2>
+      </div>
+      <div class="card">
+        <p class="small-note">Vincula tu cuenta de Google para que el inventario se envíe de verdad desde tu Gmail, y quede registrado qué cuenta lo mandó. Requiere un <b>Client ID</b> de Google Cloud (uno por empresa, se configura una sola vez; ver instrucciones al final del mensaje de la app).</p>
+        <div class="field" style="margin-top:12px;">
+          <label for="sGoogleClientId">Google Client ID</label>
+          <input type="text" id="sGoogleClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
+        </div>
+        <div id="googleSignedOutWrap">
+          <button type="button" class="btn-google" id="btnGoogleSignIn">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.5-6.5C35.3 2.7 30 0.5 24 0.5 14.9 0.5 7.1 5.7 3.3 13.3l7.6 5.9C12.7 13.1 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.2-3.9 6.6-9.7 6.6-17.4z"/><path fill="#FBBC05" d="M10.9 19.2c-.5 1.5-.8 3.1-.8 4.8s.3 3.3.8 4.8l-7.6 5.9C1.6 31.3.5 27.8.5 24s1.1-7.3 2.8-10.7l7.6 5.9z"/><path fill="#34A853" d="M24 47.5c6 0 11.3-2 15-5.4l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.6-13.1-8.7l-7.6 5.9C7.1 42.3 14.9 47.5 24 47.5z"/></svg>
+            Iniciar sesión con Google
+          </button>
+        </div>
+        <div id="googleSignedInWrap" style="display:none;">
+          <div class="google-account">
+            <img class="google-avatar" id="googleAvatarImg" style="display:none;">
+            <div class="google-avatar placeholder" id="googleAvatarPlaceholder">G</div>
+            <div class="google-info">
+              <div class="g-name" id="googleNameLabel">—</div>
+              <div class="g-email" id="googleEmailLabel">—</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-block" id="btnGoogleSignOut" style="margin-top:12px;">Cerrar sesión de Google</button>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-top:18px;">
+        <h2>Alternativa: EmailJS (opcional)</h2>
+      </div>
+      <div class="card">
+        <p class="small-note">Si no quieres usar tu cuenta de Google, puedes rellenar estos datos de <a class="link-inline" href="https://www.emailjs.com" target="_blank" rel="noopener">EmailJS</a> (cuenta gratuita) como alternativa de envío silencioso. Si dejas todo vacío, o falla el envío, se ofrecerá compartir o abrir el correo manualmente.</p>
+        <div class="field" style="margin-top:12px;">
+          <label for="sEjsService">Service ID</label>
+          <input type="text" id="sEjsService" placeholder="service_xxxxxxx">
+        </div>
+        <div class="field">
+          <label for="sEjsTemplate">Template ID</label>
+          <input type="text" id="sEjsTemplate" placeholder="template_xxxxxxx">
+        </div>
+        <div class="field">
+          <label for="sEjsPublic">Public Key</label>
+          <input type="text" id="sEjsPublic" placeholder="clave pública de EmailJS">
+        </div>
+        <p class="hint">La plantilla de EmailJS debe usar estas variables: <b>to_email</b>, <b>reply_to</b>, <b>from_name</b>, <b>empresa</b>, <b>provincia</b>, <b>clave</b>, <b>fecha</b>, <b>total_equipos</b>, <b>total_unidades</b>, <b>cuerpo_html</b>.</p>
+      </div>
+
+      <div class="section-head" style="margin-top:18px;"><h2>Copia de seguridad</h2></div>
+      <div class="card">
+        <p class="small-note">El inventario se guarda solo en este dispositivo y este navegador. Haz copias de seguridad periódicas.</p>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-outline" id="btnExportar" style="flex:1;">Exportar copia</button>
+          <button class="btn btn-outline" id="btnImportar" style="flex:1;">Importar copia</button>
+        </div>
+        <input type="file" accept="application/json" id="importFile" style="display:none;">
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btnGuardarAjustes" style="margin-top:18px;">Guardar ajustes</button>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn" data-view="inventario" aria-current="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Inventario
+    </button>
+    <button class="nav-btn" data-view="anadir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      Añadir
+    </button>
+    <button class="nav-btn" data-view="catalogo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14"/><path d="M6 21a2 2 0 0 1 0-4h13"/></svg>
+      Catálogo
+    </button>
+    <button class="nav-btn" data-view="historial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      Historial
+    </button>
+    <button class="nav-btn" data-view="ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+  <button class="fab" id="fabAdd" aria-label="Añadir equipo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <!-- Detalle de equipo -->
+  <div class="overlay" id="overlayDetalle">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="detNombre">Equipo</h2>
+        <button class="icon-btn" id="btnCerrarDetalle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="detContent"></div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-outline" id="btnEditarDesdeDetalle" style="flex:1;">Editar</button>
+        <button class="btn btn-danger" id="btnBorrarDesdeDetalle" style="flex:1;">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmación de envío -->
+  <div class="overlay" id="overlayEnvio">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2>Enviar inventario</h2>
+        <button class="icon-btn" id="btnCerrarEnvio">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="envioResumen" class="card"></div>
+      <p class="small-note" id="envioAyuda" style="margin-top:12px;"></p>
+      <div id="envioBotones" style="margin-top:14px;display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Escáner QR -->
+  <div class="scan-overlay" id="scanOverlay">
+    <div class="scan-top">
+      <button class="icon-btn" id="btnCerrarScan">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <video id="scanVideo" playsinline muted></video>
+    <div class="scan-frame"></div>
+    <p class="scan-hint" id="scanHint">Encuadra el código QR del equipo</p>
+    <canvas id="scanCanvas" style="display:none;"></canvas>
+  </div>
+
+  <!-- Alta inicial obligatoria (RRPP / Empresa) -->
+  <div class="overlay center" id="overlayOnboarding">
+    <div class="sheet">
+      <div class="form-logo"><img src="assets/logo-zener.png" alt="Zener"></div>
+      <h2 style="margin-bottom:10px;">Antes de empezar</h2>
+      <p class="onboarding-intro">Rellena los datos de quien realiza el inventario. Podrás editarlos luego desde «Ajustes».</p>
+      <div class="field">
+        <label for="obNombre">Nombre del empleado o de la empresa</label>
+        <input type="text" id="obNombre" placeholder="Nombre y apellidos, o razón social">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="obEmpresa">Empresa / RRPP</label>
+          <input type="text" id="obEmpresa" placeholder="Nombre del RRPP">
+        </div>
+        <div class="field">
+          <label for="obProvincia">Provincia</label>
+          <input type="text" id="obProvincia" placeholder="Ej. Valencia">
+        </div>
+      </div>
+      <div class="field">
+        <label for="obClave">Clave asignada</label>
+        <input type="text" id="obClave" placeholder="Código asignado por la empresa">
+      </div>
+      <div class="field">
+        <label>Fecha del inventario (día / mes / año)</label>
+        <div class="date-dmy">
+          <div class="date-part p-dia"><label for="obFechaDia">Día</label><input type="text" inputmode="numeric" maxlength="2" id="obFechaDia" placeholder="DD"></div>
+          <span class="sep">/</span>
+          <div class="date-part p-mes"><label for="obFechaMes">Mes</label><input type="text" inputmode="numeric" maxlength="2" id="obFechaMes" placeholder="MM"></div>
+          <span class="sep">/</span>
+          <div class="date-part p-anio"><label for="obFechaAnio">Año</label><input type="text" inputmode="numeric" maxlength="4" id="obFechaAnio" placeholder="AAAA"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="obCorreoRemitente">Correo desde el que se envía</label>
+        <input type="email" id="obCorreoRemitente" placeholder="tucorreo@empresa.com">
+      </div>
+      <div class="field">
+        <label for="obEmailDestino">Correo de destino del inventario</label>
+        <input type="email" id="obEmailDestino" placeholder="buzon@empresa.com">
+      </div>
+      <div class="field" id="obGoogleWrap" style="display:none;">
+        <label>Cuenta de Google (opcional, recomendado)</label>
+        <button type="button" class="btn-google" id="btnGoogleSignInOnboarding">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.5-6.5C35.3 2.7 30 0.5 24 0.5 14.9 0.5 7.1 5.7 3.3 13.3l7.6 5.9C12.7 13.1 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.2-3.9 6.6-9.7 6.6-17.4z"/><path fill="#FBBC05" d="M10.9 19.2c-.5 1.5-.8 3.1-.8 4.8s.3 3.3.8 4.8l-7.6 5.9C1.6 31.3.5 27.8.5 24s1.1-7.3 2.8-10.7l7.6 5.9z"/><path fill="#34A853" d="M24 47.5c6 0 11.3-2 15-5.4l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.6-13.1-8.7l-7.6 5.9C7.1 42.3 14.9 47.5 24 47.5z"/></svg>
+          Vincular con Google
+        </button>
+        <p class="hint" id="obGoogleStatus">Así el inventario se enviará realmente desde tu Gmail. Puedes hacerlo ahora o más tarde desde Ajustes.</p>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnGuardarOnboarding" style="margin-top:6px;">Guardar y empezar</button>
+      <p class="hint" id="obError" style="color:var(--bad);display:none;margin-top:8px;">Completa al menos el nombre, la clave y el correo de destino.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script>
+/* ============================================================
+   INVENTARIO DE EQUIPOS — lógica de la aplicación
+   Almacenamiento: localStorage (por dispositivo/navegador)
+   ============================================================ */
+(function(){
+"use strict";
+
+const STORE_KEYS = {
+  inventario: "inv_equipos_v2",
+  catalogo: "inv_catalogo_v2",
+  ajustes: "inv_ajustes_v2",
+  historial: "inv_historial_v1"
+};
+
+const ESTADOS = {
+  bueno: { label: "Bueno", clase: "estado-bueno" },
+  regular: { label: "Regular", clase: "estado-regular" },
+  reparacion: { label: "En reparación", clase: "estado-reparacion" },
+  baja: { label: "Baja", clase: "estado-baja" }
+};
+
+const LONGITUD_CODIGO_QR = 8;
+
+/* ---------------- almacenamiento ---------------- */
+function loadJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ console.warn("Error leyendo", key, e); return fallback; }
+}
+function saveJSON(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch(e){ console.warn("Error guardando", key, e); showToast("No se pudo guardar (almacenamiento lleno)"); return false; }
+}
+
+function hoyISO(){ return new Date().toISOString().slice(0,10); }
+
+function isoToDMY(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");
+  if(!m) return { dia:"", mes:"", anio:"" };
+  return { dia: m[3], mes: m[2], anio: m[1] };
+}
+function dmyToISO(dia, mes, anio){
+  const d = parseInt(dia,10), m = parseInt(mes,10), y = parseInt(anio,10);
+  if(!Number.isFinite(d) || !Number.isFinite(m) || !Number.isFinite(y)) return null;
+  if(d<1 || d>31 || m<1 || m>12 || y<2000 || y>2100) return null;
+  return `${String(y).padStart(4,"0")}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+function rellenarCamposFecha(prefijo, iso){
+  const dmy = isoToDMY(iso || hoyISO());
+  document.getElementById(prefijo+"Dia").value = dmy.dia;
+  document.getElementById(prefijo+"Mes").value = dmy.mes;
+  document.getElementById(prefijo+"Anio").value = dmy.anio;
+}
+function leerCamposFecha(prefijo){
+  const dia = document.getElementById(prefijo+"Dia").value.trim();
+  const mes = document.getElementById(prefijo+"Mes").value.trim();
+  const anio = document.getElementById(prefijo+"Anio").value.trim();
+  return dmyToISO(dia, mes, anio);
+}
+
+let inventario = loadJSON(STORE_KEYS.inventario, []);
+let historial = loadJSON(STORE_KEYS.historial, []);
+let catalogo = loadJSON(STORE_KEYS.catalogo, { items: [], actualizado: null });
+let ajustes = loadJSON(STORE_KEYS.ajustes, {
+  nombre:"", empresa:"", provincia:"", clave:"", fechaInventario: hoyISO(),
+  correoRemitente:"", emailDestino:"",
+  googleClientId:"94678309520-dc0vdmob525lirunp8mpej3pcjioptu7.apps.googleusercontent.com", google:null,
+  ejsService:"", ejsTemplate:"", ejsPublic:"",
+  spUrl:"", ultimoEnvio:null, configurado:false
+});
+
+function uid(){ return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function escapeHTML(s){
+  return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function formatFecha(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}) + " " + d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  }catch(e){ return iso; }
+}
+function formatFechaCorta(iso){
+  if(!iso) return "—";
+  try{ return new Date(iso+"T00:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}); }
+  catch(e){ return iso; }
+}
+
+/* ---------------- toast ---------------- */
+let toastTimer=null;
+function showToast(msg, ms=2600){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), ms);
+}
+
+/* ---------------- alta inicial obligatoria ---------------- */
+function checkOnboarding(){
+  const overlay = document.getElementById("overlayOnboarding");
+  document.getElementById("obNombre").value = ajustes.nombre || "";
+  document.getElementById("obEmpresa").value = ajustes.empresa || "";
+  document.getElementById("obProvincia").value = ajustes.provincia || "";
+  document.getElementById("obClave").value = ajustes.clave || "";
+  rellenarCamposFecha("obFecha", ajustes.fechaInventario);
+  document.getElementById("obCorreoRemitente").value = ajustes.correoRemitente || "";
+  document.getElementById("obEmailDestino").value = ajustes.emailDestino || "";
+  document.getElementById("obGoogleWrap").style.display = ajustes.googleClientId ? "block" : "none";
+  document.getElementById("obGoogleStatus").textContent = (ajustes.google && ajustes.google.email)
+    ? ("Vinculado como " + ajustes.google.email)
+    : "Así el inventario se enviará realmente desde tu Gmail. Puedes hacerlo ahora o más tarde desde Ajustes.";
+  if(ajustes.configurado){ overlay.classList.remove("active"); return; }
+  overlay.classList.add("active");
+}
+document.getElementById("btnGuardarOnboarding").addEventListener("click", ()=>{
+  const nombre = document.getElementById("obNombre").value.trim();
+  const clave = document.getElementById("obClave").value.trim();
+  const emailDestino = document.getElementById("obEmailDestino").value.trim();
+  if(!nombre || !clave || !emailDestino){
+    document.getElementById("obError").style.display = "block";
+    return;
+  }
+  ajustes.nombre = nombre;
+  ajustes.empresa = document.getElementById("obEmpresa").value.trim();
+  ajustes.provincia = document.getElementById("obProvincia").value.trim();
+  ajustes.clave = clave;
+  ajustes.fechaInventario = leerCamposFecha("obFecha") || hoyISO();
+  ajustes.correoRemitente = document.getElementById("obCorreoRemitente").value.trim();
+  ajustes.emailDestino = emailDestino;
+  ajustes.configurado = true;
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+  document.getElementById("overlayOnboarding").classList.remove("active");
+  renderHeader();
+  renderAjustes();
+  showToast("Datos guardados. ¡Ya puedes registrar equipos!");
+});
+
+/* ---------------- Google Sign-In + envío real por Gmail ---------------- */
+let googleTokenClient = null;
+let googleAccessToken = null;
+let googleAccessTokenExpiry = 0;
+
+function ensureGoogleTokenClient(){
+  if(!window.google || !window.google.accounts || !window.google.accounts.oauth2) return null;
+  if(!ajustes.googleClientId) return null;
+  if(!googleTokenClient || googleTokenClient.__clientId !== ajustes.googleClientId){
+    googleTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: ajustes.googleClientId,
+      scope: "openid email profile https://www.googleapis.com/auth/gmail.send",
+      callback: ()=>{}
+    });
+    googleTokenClient.__clientId = ajustes.googleClientId;
+  }
+  return googleTokenClient;
+}
+
+function requestGoogleToken(interactive){
+  return new Promise((resolve, reject)=>{
+    const client = ensureGoogleTokenClient();
+    if(!client){ reject(new Error("Google Sign-In no está configurado (falta el Client ID o no cargó la librería de Google)")); return; }
+    client.callback = (resp)=>{
+      if(!resp || resp.error){ reject(new Error((resp && resp.error) || "Error de Google")); return; }
+      googleAccessToken = resp.access_token;
+      googleAccessTokenExpiry = Date.now() + (Number(resp.expires_in)||3300)*1000;
+      resolve(resp.access_token);
+    };
+    try{
+      client.requestAccessToken({ prompt: interactive ? "consent" : "" });
+    }catch(err){ reject(err); }
+  });
+}
+
+async function getValidGoogleToken(interactiveIfNeeded){
+  if(googleAccessToken && Date.now() < googleAccessTokenExpiry - 30000) return googleAccessToken;
+  try{
+    return await requestGoogleToken(false);
+  }catch(e){
+    if(interactiveIfNeeded) return await requestGoogleToken(true);
+    throw e;
+  }
+}
+
+function renderGoogleAccountUI(){
+  const signedOut = document.getElementById("googleSignedOutWrap");
+  const signedIn = document.getElementById("googleSignedInWrap");
+  if(ajustes.google && ajustes.google.email){
+    signedOut.style.display = "none";
+    signedIn.style.display = "block";
+    document.getElementById("googleNameLabel").textContent = ajustes.google.name || ajustes.google.email;
+    document.getElementById("googleEmailLabel").textContent = ajustes.google.email;
+    const img = document.getElementById("googleAvatarImg");
+    const ph = document.getElementById("googleAvatarPlaceholder");
+    if(ajustes.google.picture){
+      img.src = ajustes.google.picture; img.style.display = "block"; ph.style.display = "none";
+    }else{
+      img.style.display = "none"; ph.style.display = "flex";
+      ph.textContent = (ajustes.google.name || ajustes.google.email || "G").slice(0,1).toUpperCase();
+    }
+  }else{
+    signedOut.style.display = "block";
+    signedIn.style.display = "none";
+  }
+}
+
+async function iniciarSesionGoogle(){
+  const clientIdCampo = document.getElementById("sGoogleClientId");
+  if(clientIdCampo && clientIdCampo.value.trim()) ajustes.googleClientId = clientIdCampo.value.trim();
+  if(!ajustes.googleClientId){ showToast("Pega antes el Google Client ID en Ajustes"); return; }
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+  if(!window.google || !window.google.accounts || !window.google.accounts.oauth2){
+    showToast("No se pudo cargar el inicio de sesión de Google (revisa tu conexión)");
+    return;
+  }
+  try{
+    await requestGoogleToken(true);
+    const info = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: "Bearer " + googleAccessToken }
+    }).then(r=>r.json());
+    ajustes.google = { email: info.email, name: info.name || "", picture: info.picture || "" };
+    ajustes.correoRemitente = info.email;
+    saveJSON(STORE_KEYS.ajustes, ajustes);
+    renderGoogleAccountUI();
+    renderAjustes();
+    checkOnboarding();
+    showToast("Cuenta de Google vinculada: " + info.email);
+  }catch(err){
+    console.warn(err);
+    showToast("No se pudo iniciar sesión con Google");
+  }
+}
+
+document.getElementById("btnGoogleSignIn").addEventListener("click", iniciarSesionGoogle);
+document.getElementById("btnGoogleSignInOnboarding").addEventListener("click", iniciarSesionGoogle);
+document.getElementById("btnGoogleSignOut").addEventListener("click", ()=>{
+  if(googleAccessToken && window.google && window.google.accounts){
+    google.accounts.oauth2.revoke(googleAccessToken, ()=>{});
+  }
+  googleAccessToken = null; googleAccessTokenExpiry = 0;
+  ajustes.google = null;
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+  renderGoogleAccountUI();
+  showToast("Sesión de Google cerrada");
+});
+
+function toBase64Url(str){
+  return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+
+function base64ToBlob(base64, mime){
+  const bytes = atob(base64);
+  const arr = new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+function buildMimeMessage({ from, to, subject, htmlBody, attachments }){
+  const boundary = "mixInv" + Date.now();
+  const asuntoCodificado = "=?UTF-8?B?" + btoa(unescape(encodeURIComponent(subject))) + "?=";
+  let msg = "";
+  if(from) msg += `From: ${from}\r\n`;
+  msg += `To: ${to}\r\n`;
+  msg += `Subject: ${asuntoCodificado}\r\n`;
+  msg += `MIME-Version: 1.0\r\n`;
+  msg += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
+  msg += `--${boundary}\r\nContent-Type: text/html; charset="UTF-8"\r\n\r\n${htmlBody}\r\n\r\n`;
+  (attachments||[]).forEach(att=>{
+    msg += `--${boundary}\r\nContent-Type: ${att.mime}; name="${att.filename}"\r\nContent-Disposition: attachment; filename="${att.filename}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${att.base64}\r\n\r\n`;
+  });
+  msg += `--${boundary}--`;
+  return msg;
+}
+
+async function intentarEnvioGmail(asunto, htmlBody){
+  if(!ajustes.google || !ajustes.google.email) throw new Error("No hay sesión de Google vinculada");
+  const token = await getValidGoogleToken(true);
+  const excel = await construirExcelInventario();
+  const fotos = inventario.filter(e=>e.foto).slice(0,10);
+  const attachments = [{
+    filename: excel.filename,
+    mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    base64: excel.base64
+  }];
+  fotos.forEach(eq=>{
+    attachments.push({
+      filename: (eq.codigo||eq.descripcion||"foto").replace(/[^a-z0-9\-_]+/gi,"_") + ".jpg",
+      mime: "image/jpeg",
+      base64: (eq.foto.split(",")[1] || "")
+    });
+  });
+  const mime = buildMimeMessage({ from: ajustes.google.email, to: ajustes.emailDestino, subject: asunto, htmlBody, attachments });
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ raw: toBase64Url(mime) })
+  });
+  if(!res.ok){
+    const detalle = await res.text().catch(()=> "");
+    throw new Error("Gmail API " + res.status + ": " + detalle);
+  }
+}
+
+/* ---------------- navegación ---------------- */
+const views = ["inventario","anadir","catalogo","historial","ajustes"];
+function goTo(view){
+  views.forEach(v=>{
+    document.getElementById("view-"+v).classList.toggle("active", v===view);
+  });
+  document.querySelectorAll(".nav-btn").forEach(btn=>{
+    btn.setAttribute("aria-current", btn.dataset.view===view ? "true":"false");
+  });
+  document.getElementById("fabAdd").style.display = (view==="inventario") ? "flex" : "none";
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".nav-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    if(btn.dataset.view==="anadir") openForm(null);
+    else{
+      goTo(btn.dataset.view);
+      if(btn.dataset.view==="historial") renderHistorial();
+    }
+  });
+});
+document.getElementById("fabAdd").addEventListener("click", ()=>openForm(null));
+
+/* ---------------- render: cabecera ---------------- */
+function renderHeader(){
+  const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  document.getElementById("countPill").textContent = inventario.length + (inventario.length===1 ? " equipo" : " equipos") + (totalUnidades!==inventario.length ? " · " + totalUnidades + " uds" : "");
+  const sub = document.getElementById("subtitleUser");
+  sub.textContent = ajustes.nombre ? (ajustes.nombre + (ajustes.provincia ? " · "+ajustes.provincia : "")) : "Configura tu perfil en Ajustes";
+  const note = document.getElementById("lastSentNote");
+  note.textContent = ajustes.ultimoEnvio ? ("Último envío: " + formatFecha(ajustes.ultimoEnvio)) : "Todavía no has enviado el inventario";
+}
+
+/* ---------------- render: lista de inventario ---------------- */
+function renderInventario(){
+  const wrap = document.getElementById("inventarioListWrap");
+  const term = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+  const filtrados = inventario.filter(eq=>{
+    if(!term) return true;
+    return (eq.descripcion||"").toLowerCase().includes(term) ||
+           (eq.codigo||"").toLowerCase().includes(term) ||
+           (eq.marca||"").toLowerCase().includes(term);
+  }).sort((a,b)=> (b.fechaMod||0) - (a.fechaMod||0));
+
+  if(filtrados.length===0){
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="headline">${inventario.length===0 ? "Aún no hay equipos" : "Sin resultados"}</div>
+      <p>${inventario.length===0 ? "Pulsa \u00abA\u00f1adir\u00bb o el bot\u00f3n + para registrar el primer equipo, a mano o escaneando su QR." : "Prueba con otra descripci\u00f3n o c\u00f3digo."}</p>
+    </div>`;
+    renderHeader();
+    return;
+  }
+
+  wrap.innerHTML = `<div class="equip-list">${filtrados.map(rowHTML).join("")}</div>`;
+  wrap.querySelectorAll("[data-open]").forEach(el=>{
+    el.addEventListener("click", ()=>openDetalle(el.dataset.open));
+  });
+  renderHeader();
+}
+
+function rowHTML(eq){
+  const est = ESTADOS[eq.estado] || ESTADOS.bueno;
+  const thumb = eq.foto
+    ? `<img class="equip-thumb" src="${eq.foto}" alt="">`
+    : `<div class="equip-thumb placeholder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/></svg></div>`;
+  const cant = Number(eq.cantidad)||1;
+  return `<div class="equip-row ${est.clase}" data-open="${eq.id}">
+    ${thumb}
+    <div class="equip-info">
+      <div class="name">${escapeHTML(eq.descripcion || "Sin descripción")}</div>
+      <div class="meta">${escapeHTML([eq.marca, eq.modelo].filter(Boolean).join(" · ") || "—")}</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap;">
+        ${eq.codigo ? `<span class="equip-code">${escapeHTML(eq.codigo)}</span>` : ""}
+        <span class="qty-pill">x${cant}</span>
+        ${eq.qrCompleto ? `<span class="qty-pill" title="Tiene QR guardado">QR</span>` : ""}
+      </div>
+    </div>
+    <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+  </div>`;
+}
+
+document.getElementById("searchInput").addEventListener("input", renderInventario);
+
+/* ---------------- detalle de equipo ---------------- */
+let detalleActualId = null;
+function openDetalle(id){
+  const eq = inventario.find(e=>e.id===id);
+  if(!eq) return;
+  detalleActualId = id;
+  const est = ESTADOS[eq.estado] || ESTADOS.bueno;
+  document.getElementById("detNombre").textContent = eq.descripcion || "Equipo";
+  document.getElementById("detContent").innerHTML = `
+    ${eq.foto ? `<img src="${eq.foto}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--line);margin-bottom:14px;">` : ""}
+    <div class="card" style="padding:14px;">
+      <div class="field"><label>Marca / modelo</label><div>${escapeHTML([eq.marca,eq.modelo].filter(Boolean).join(" · ") || "—")}</div></div>
+      <div class="field-row">
+        <div class="field"><label>Código</label><div>${escapeHTML(eq.codigo || "—")}</div></div>
+        <div class="field"><label>Cantidad</label><div>${Number(eq.cantidad)||1}</div></div>
+      </div>
+      <div class="field"><label>Estado</label><div><span class="badge-dot" style="background:var(--${eq.estado==='bueno'?'good':eq.estado==='baja'?'bad':'warn'})"></span>${est.label}</div></div>
+      <div class="field"><label>Ubicación</label><div>${escapeHTML(eq.ubicacion || "—")}</div></div>
+      ${eq.notas ? `<div class="field"><label>Notas</label><div>${escapeHTML(eq.notas)}</div></div>` : ""}
+      ${eq.qrCompleto ? `<div class="field"><label>QR completo guardado</label><div style="font-family:monospace;font-size:12px;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;">${escapeHTML(eq.qrCompleto)}</div></div>` : ""}
+      <div class="field"><label>Registrado</label><div>${formatFecha(eq.fechaAlta)}</div></div>
+    </div>`;
+  document.getElementById("overlayDetalle").classList.add("active");
+}
+document.getElementById("btnCerrarDetalle").addEventListener("click", ()=>document.getElementById("overlayDetalle").classList.remove("active"));
+document.getElementById("btnEditarDesdeDetalle").addEventListener("click", ()=>{
+  document.getElementById("overlayDetalle").classList.remove("active");
+  openForm(detalleActualId);
+});
+document.getElementById("btnBorrarDesdeDetalle").addEventListener("click", ()=>{
+  if(!confirm("¿Eliminar este equipo del inventario?")) return;
+  inventario = inventario.filter(e=>e.id!==detalleActualId);
+  saveJSON(STORE_KEYS.inventario, inventario);
+  document.getElementById("overlayDetalle").classList.remove("active");
+  renderInventario();
+  showToast("Equipo eliminado");
+});
+
+/* ---------------- formulario: añadir / editar ---------------- */
+let formEditId = null;
+let formFotoData = null;
+let formEstado = "bueno";
+let formQrCompleto = null;
+
+function openForm(id){
+  formEditId = id;
+  const eq = id ? inventario.find(e=>e.id===id) : null;
+  document.getElementById("formTitle").textContent = eq ? "Editar equipo" : "Nuevo equipo";
+  document.getElementById("fDescripcion").value = (eq && eq.descripcion) || "";
+  document.getElementById("fMarca").value = (eq && eq.marca) || "";
+  document.getElementById("fModelo").value = (eq && eq.modelo) || "";
+  document.getElementById("fCodigo").value = (eq && eq.codigo) || "";
+  document.getElementById("fCantidad").value = (eq && eq.cantidad) || 1;
+  document.getElementById("fUbicacion").value = (eq && eq.ubicacion) || "";
+  document.getElementById("fNotas").value = (eq && eq.notas) || "";
+  formFotoData = (eq && eq.foto) || null;
+  formEstado = (eq && eq.estado) || "bueno";
+  formQrCompleto = (eq && eq.qrCompleto) || null;
+  updatePhotoPreview();
+  updateStatusChips();
+  updateQrFlag();
+  document.getElementById("btnEliminarEquipo").style.display = eq ? "block" : "none";
+  document.getElementById("catalogPickWrap").style.display = catalogo.items.length ? "block" : "none";
+  document.getElementById("catalogPick").value = "";
+  document.getElementById("catalogSuggestions").innerHTML = "";
+  goTo("anadir");
+}
+
+document.getElementById("btnCancelarForm").addEventListener("click", ()=>goTo("inventario"));
+
+document.querySelectorAll(".status-chip").forEach(chip=>{
+  chip.addEventListener("click", ()=>{ formEstado = chip.dataset.value; updateStatusChips(); });
+});
+function updateStatusChips(){
+  document.querySelectorAll(".status-chip").forEach(chip=>{
+    chip.setAttribute("data-active", chip.dataset.value===formEstado ? "true":"false");
+  });
+}
+
+function updateQrFlag(){
+  document.getElementById("qrFlagWrap").style.display = formQrCompleto ? "block" : "none";
+}
+document.getElementById("btnQuitarQR").addEventListener("click", ()=>{
+  formQrCompleto = null;
+  updateQrFlag();
+  showToast("QR desvinculado de este equipo");
+});
+
+function updatePhotoPreview(){
+  const prev = document.getElementById("photoPreview");
+  const quitar = document.getElementById("btnQuitarFoto");
+  if(formFotoData){
+    prev.innerHTML = `<img src="${formFotoData}" alt="">`;
+    quitar.style.display = "inline-flex";
+  }else{
+    prev.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>`;
+    quitar.style.display = "none";
+  }
+}
+document.getElementById("btnTomarFoto").addEventListener("click", ()=>document.getElementById("fFoto").click());
+document.getElementById("btnQuitarFoto").addEventListener("click", ()=>{ formFotoData=null; updatePhotoPreview(); });
+document.getElementById("fFoto").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    formFotoData = await resizeImageToDataURL(file, 720, 0.72);
+    updatePhotoPreview();
+  }catch(err){
+    console.warn(err);
+    showToast("No se pudo procesar la foto");
+  }
+  e.target.value = "";
+});
+
+function resizeImageToDataURL(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ()=>{ img.onload = ()=>{
+      let w = img.width, h = img.height;
+      if(w>h && w>maxDim){ h = Math.round(h*maxDim/w); w = maxDim; }
+      else if(h>=w && h>maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+      const canvas = document.createElement("canvas");
+      canvas.width=w; canvas.height=h;
+      canvas.getContext("2d").drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById("btnGuardarEquipo").addEventListener("click", ()=>{
+  const descripcion = document.getElementById("fDescripcion").value.trim();
+  if(!descripcion){ showToast("Escribe al menos la descripción del equipo"); return; }
+  const codigo = document.getElementById("fCodigo").value.trim();
+  if(codigo){
+    const duplicado = inventario.find(e => e.id!==formEditId && (e.codigo||"").toUpperCase()===codigo.toUpperCase());
+    if(duplicado){
+      showToast(`El código ${codigo} ya está registrado en este inventario como "${duplicado.descripcion || "sin descripción"}". Un código/QR es un identificador único: edita esa línea en vez de duplicarla.`, 5500);
+      return;
+    }
+  }
+  let cantidad = parseInt(document.getElementById("fCantidad").value, 10);
+  if(!Number.isFinite(cantidad) || cantidad < 1) cantidad = 1;
+  const data = {
+    id: formEditId || uid(),
+    descripcion,
+    marca: document.getElementById("fMarca").value.trim(),
+    modelo: document.getElementById("fModelo").value.trim(),
+    codigo,
+    cantidad,
+    ubicacion: document.getElementById("fUbicacion").value.trim(),
+    notas: document.getElementById("fNotas").value.trim(),
+    estado: formEstado,
+    foto: formFotoData,
+    qrCompleto: formQrCompleto,
+    fechaAlta: formEditId ? ((inventario.find(e=>e.id===formEditId) || {}).fechaAlta || new Date().toISOString()) : new Date().toISOString(),
+    fechaMod: Date.now()
+  };
+  if(formEditId){
+    inventario = inventario.map(e=> e.id===formEditId ? data : e);
+  }else{
+    inventario.push(data);
+  }
+  saveJSON(STORE_KEYS.inventario, inventario);
+  showToast(formEditId ? "Equipo actualizado" : "Equipo añadido");
+  goTo("inventario");
+  renderInventario();
+});
+
+document.getElementById("btnEliminarEquipo").addEventListener("click", ()=>{
+  if(!formEditId) return;
+  if(!confirm("¿Eliminar este equipo del inventario?")) return;
+  inventario = inventario.filter(e=>e.id!==formEditId);
+  saveJSON(STORE_KEYS.inventario, inventario);
+  showToast("Equipo eliminado");
+  goTo("inventario");
+  renderInventario();
+});
+
+/* --------- autocompletar desde catálogo al añadir a mano --------- */
+document.getElementById("catalogPick").addEventListener("input", (e)=>{
+  const term = e.target.value.trim().toLowerCase();
+  const box = document.getElementById("catalogSuggestions");
+  if(!term){ box.innerHTML=""; return; }
+  const results = catalogo.items.filter(c=>
+    (c.codigo||"").toLowerCase().includes(term) || (c.descripcion||"").toLowerCase().includes(term)
+  ).slice(0,6);
+  box.innerHTML = results.map(r=>`
+    <div class="cat-row" data-pick="${escapeHTML(r.codigo)}" style="cursor:pointer;">
+      <div><div class="c-name">${escapeHTML(r.descripcion||r.codigo)}</div><div class="c-sub">${escapeHTML([r.marca,r.modelo].filter(Boolean).join(" · "))}</div></div>
+      <span class="equip-code">${escapeHTML(r.codigo)}</span>
+    </div>`).join("");
+  box.querySelectorAll("[data-pick]").forEach(row=>{
+    row.addEventListener("click", ()=>{
+      const item = catalogo.items.find(c=>c.codigo===row.dataset.pick);
+      if(!item) return;
+      document.getElementById("fDescripcion").value = item.descripcion || "";
+      document.getElementById("fMarca").value = item.marca || "";
+      document.getElementById("fModelo").value = item.modelo || "";
+      document.getElementById("fCodigo").value = item.codigo || "";
+      document.getElementById("catalogPick").value = "";
+      box.innerHTML = "";
+      showToast("Datos del catálogo cargados");
+    });
+  });
+});
+
+/* ---------------- escáner QR ---------------- */
+let scanStream = null, scanRAF = null;
+document.getElementById("btnScanQR").addEventListener("click", startScan);
+document.getElementById("btnCerrarScan").addEventListener("click", stopScan);
+
+async function startScan(){
+  const overlay = document.getElementById("scanOverlay");
+  const video = document.getElementById("scanVideo");
+  document.getElementById("scanHint").textContent = "Encuadra el código QR del equipo";
+  overlay.classList.add("active");
+
+  if(window.isSecureContext === false){
+    showToast("La cámara solo funciona sobre HTTPS. Este sitio se está sirviendo sin conexión segura: usa el enlace https:// de tu hosting.", 5000);
+    stopScan();
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showToast("Este navegador no permite acceder a la cámara en directo. Usa «Subir foto del QR» como alternativa.", 4500);
+    stopScan();
+    return;
+  }
+
+  const intentosCamara = [
+    { video: { facingMode: { ideal: "environment" } } },
+    { video: true }
+  ];
+  let ultimoError = null;
+  for(const constraints of intentosCamara){
+    try{
+      scanStream = await navigator.mediaDevices.getUserMedia(constraints);
+      ultimoError = null;
+      break;
+    }catch(err){ ultimoError = err; }
+  }
+  if(ultimoError){
+    console.warn(ultimoError);
+    let msg = "No se pudo abrir la cámara. Usa «Subir foto del QR» como alternativa.";
+    if(ultimoError.name === "NotAllowedError" || ultimoError.name === "SecurityError"){
+      msg = "Permiso de cámara denegado. Revisa los permisos del sitio en el navegador (icono del candado) y vuelve a intentarlo.";
+    }else if(ultimoError.name === "NotFoundError" || ultimoError.name === "OverconstrainedError"){
+      msg = "No se encontró ninguna cámara en este dispositivo. Usa «Subir foto del QR» como alternativa.";
+    }else if(ultimoError.name === "NotReadableError"){
+      msg = "La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.";
+    }
+    showToast(msg, 5000);
+    stopScan();
+    return;
+  }
+
+  try{
+    video.srcObject = scanStream;
+    await video.play();
+    const canvas = document.getElementById("scanCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently:true });
+    const tick = ()=>{
+      if(!scanStream) return;
+      if(video.readyState === video.HAVE_ENOUGH_DATA){
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
+        if(code && code.data){ onQRDetected(code.data); return; }
+      }
+      scanRAF = requestAnimationFrame(tick);
+    };
+    scanRAF = requestAnimationFrame(tick);
+  }catch(err){
+    console.warn(err);
+    showToast("No se pudo iniciar la vista de la cámara. Usa «Subir foto del QR» como alternativa.", 4500);
+    stopScan();
+  }
+}
+function stopScan(){
+  document.getElementById("scanOverlay").classList.remove("active");
+  if(scanRAF) cancelAnimationFrame(scanRAF);
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+}
+
+function decodificarQRDesdeArchivo(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      img.onload = ()=>{
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext("2d", { willReadFrequently:true });
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code = window.jsQR ? jsQR(data.data, data.width, data.height) : null;
+        if(code && code.data) resolve(code.data);
+        else reject(new Error("No se detectó ningún QR en la imagen"));
+      };
+      img.onerror = ()=>reject(new Error("No se pudo leer la imagen"));
+      img.src = reader.result;
+    };
+    reader.onerror = ()=>reject(new Error("No se pudo leer el archivo"));
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById("btnSubirFotoQR").addEventListener("click", ()=>document.getElementById("fotoQRInput").click());
+document.getElementById("fotoQRInput").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = "";
+  if(!file) return;
+  showToast("Analizando la foto…", 1500);
+  try{
+    const texto = await decodificarQRDesdeArchivo(file);
+    if(navigator.vibrate) navigator.vibrate(60);
+    onQRDetected(texto);
+  }catch(err){
+    console.warn(err);
+    showToast("No se detectó ningún QR en esa foto. Prueba a acercarte más o con mejor luz.", 4000);
+  }
+});
+
+function onQRDetected(text){
+  document.getElementById("scanHint").textContent = "Código leído";
+  if(navigator.vibrate) navigator.vibrate(60);
+  stopScan();
+
+  const raw = String(text || "");
+  const codigo = raw.trim().slice(0, LONGITUD_CODIGO_QR);
+  if(!codigo){
+    showToast("El QR no contiene un código válido");
+    return;
+  }
+
+  const existente = inventario.find(e => (e.codigo||"").toUpperCase() === codigo.toUpperCase());
+  if(existente){
+    showToast(`Ese QR (código ${codigo}) ya está registrado en este inventario como "${existente.descripcion || "sin descripción"}". Un QR es un identificador único: no se puede volver a registrar en el mismo inventario. Se abre para que lo edites.`, 5500);
+    openForm(existente.id);
+    return;
+  }
+
+  openForm(null);
+  document.getElementById("fCodigo").value = codigo;
+  formQrCompleto = raw;
+  updateQrFlag();
+
+  const item = catalogo.items.find(c => (c.codigo||"").toUpperCase() === codigo.toUpperCase());
+  if(item){
+    document.getElementById("fDescripcion").value = item.descripcion || "";
+    document.getElementById("fMarca").value = item.marca || "";
+    document.getElementById("fModelo").value = item.modelo || "";
+    showToast(`Código ${codigo} encontrado en el catálogo. Revisa y guarda.`);
+  }else if(catalogo.items.length === 0){
+    showToast(`Código ${codigo} leído y QR guardado. Aún no has descargado el catálogo: completa la descripción a mano o impórtalo en la pestaña Catálogo.`, 4400);
+  }else{
+    showToast(`Código ${codigo} leído y QR guardado, pero no está en el catálogo. Completa la descripción a mano.`, 4400);
+  }
+}
+
+/* ---------------- catálogo (SharePoint) ---------------- */
+function renderCatalogo(){
+  document.getElementById("spUrl").value = ajustes.spUrl || "";
+  const status = document.getElementById("catalogStatus");
+  status.textContent = catalogo.actualizado
+    ? `Catálogo descargado en este dispositivo: ${catalogo.items.length} códigos · actualizado ${formatFecha(catalogo.actualizado)}`
+    : "Aún no se ha descargado ningún catálogo.";
+  document.getElementById("catalogCountLabel").textContent = catalogo.items.length + " códigos en catálogo";
+  const wrap = document.getElementById("catalogListWrap");
+  if(catalogo.items.length===0){ wrap.innerHTML = ""; return; }
+  wrap.innerHTML = catalogo.items.slice(0,200).map(c=>`
+    <div class="cat-row">
+      <div><div class="c-name">${escapeHTML(c.descripcion||"—")}</div><div class="c-sub">${escapeHTML([c.marca,c.modelo].filter(Boolean).join(" · "))}</div></div>
+      <span class="equip-code">${escapeHTML(c.codigo||"")}</span>
+    </div>`).join("");
+}
+
+document.getElementById("btnAbrirSP").addEventListener("click", ()=>{
+  const url = document.getElementById("spUrl").value.trim();
+  if(!url){ showToast("Pega antes el enlace de SharePoint"); return; }
+  ajustes.spUrl = url; saveJSON(STORE_KEYS.ajustes, ajustes);
+  window.open(url, "_blank");
+  showToast("Se abrió el enlace. Cuando termine de descargar, pulsa «Actualizar catálogo del dispositivo».");
+});
+
+document.getElementById("btnImportarSP").addEventListener("click", ()=>document.getElementById("spFile").click());
+document.getElementById("spFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const wb = XLSX.read(ev.target.result, { type: "binary" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:"" });
+      const items = rows.map(mapCatalogRow).filter(r=>r.codigo);
+      if(items.length===0){ showToast("No se encontraron filas con código en el archivo"); return; }
+      catalogo = { items, actualizado: new Date().toISOString() };
+      saveJSON(STORE_KEYS.catalogo, catalogo);
+      renderCatalogo();
+      showToast(`Catálogo actualizado en el dispositivo: ${items.length} códigos. Las búsquedas ahora son instantáneas, sin necesidad de internet.`, 4200);
+    }catch(err){
+      console.warn(err);
+      showToast("No se pudo leer el archivo. Comprueba que sea .xlsx, .xls o .csv");
+    }
+  };
+  reader.readAsBinaryString(file);
+  e.target.value = "";
+});
+
+function mapCatalogRow(row){
+  const norm = {};
+  Object.keys(row).forEach(k=>{ norm[k.trim().toLowerCase()] = row[k]; });
+  const pick = (...keys)=>{
+    for(const k of keys){ if(norm[k]!==undefined && String(norm[k]).trim()!=="") return String(norm[k]).trim(); }
+    return "";
+  };
+  return {
+    codigo: pick("codigo","código","code","cod","id","sku"),
+    descripcion: pick("descripcion","descripción","description","nombre","name","equipo"),
+    marca: pick("marca","brand"),
+    modelo: pick("modelo","model")
+  };
+}
+
+/* ---------------- ajustes ---------------- */
+function renderAjustes(){
+  document.getElementById("sNombre").value = ajustes.nombre || "";
+  document.getElementById("sEmpresa").value = ajustes.empresa || "";
+  document.getElementById("sProvincia").value = ajustes.provincia || "";
+  document.getElementById("sClave").value = ajustes.clave || "";
+  rellenarCamposFecha("sFecha", ajustes.fechaInventario);
+  document.getElementById("sCorreoRemitente").value = ajustes.correoRemitente || "";
+  document.getElementById("sEmailDestino").value = ajustes.emailDestino || "";
+  document.getElementById("sGoogleClientId").value = ajustes.googleClientId || "";
+  document.getElementById("sEjsService").value = ajustes.ejsService || "";
+  document.getElementById("sEjsTemplate").value = ajustes.ejsTemplate || "";
+  document.getElementById("sEjsPublic").value = ajustes.ejsPublic || "";
+  renderGoogleAccountUI();
+}
+document.getElementById("btnGuardarAjustes").addEventListener("click", ()=>{
+  const nombre = document.getElementById("sNombre").value.trim();
+  const clave = document.getElementById("sClave").value.trim();
+  const emailDestino = document.getElementById("sEmailDestino").value.trim();
+  if(!nombre || !clave || !emailDestino){
+    showToast("Completa al menos nombre, clave y correo de destino");
+    return;
+  }
+  ajustes.nombre = nombre;
+  ajustes.empresa = document.getElementById("sEmpresa").value.trim();
+  ajustes.provincia = document.getElementById("sProvincia").value.trim();
+  ajustes.clave = clave;
+  ajustes.fechaInventario = leerCamposFecha("sFecha") || hoyISO();
+  ajustes.correoRemitente = document.getElementById("sCorreoRemitente").value.trim();
+  ajustes.emailDestino = emailDestino;
+  ajustes.googleClientId = document.getElementById("sGoogleClientId").value.trim();
+  ajustes.ejsService = document.getElementById("sEjsService").value.trim();
+  ajustes.ejsTemplate = document.getElementById("sEjsTemplate").value.trim();
+  ajustes.ejsPublic = document.getElementById("sEjsPublic").value.trim();
+  ajustes.configurado = true;
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+  renderHeader();
+  showToast("Ajustes guardados");
+});
+
+document.getElementById("btnExportar").addEventListener("click", ()=>{
+  const backup = { inventario, catalogo, ajustes, historial, exportado: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(backup,null,2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "inventario-backup-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  showToast("Copia exportada");
+});
+document.getElementById("btnImportar").addEventListener("click", ()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!confirm("Esto reemplazará el inventario, catálogo, historial y ajustes actuales de este dispositivo. ¿Continuar?")) return;
+      inventario = data.inventario || [];
+      catalogo = data.catalogo || { items:[], actualizado:null };
+      historial = data.historial || [];
+      ajustes = Object.assign(ajustes, data.ajustes || {});
+      saveJSON(STORE_KEYS.inventario, inventario);
+      saveJSON(STORE_KEYS.catalogo, catalogo);
+      saveJSON(STORE_KEYS.historial, historial);
+      saveJSON(STORE_KEYS.ajustes, ajustes);
+      renderInventario(); renderCatalogo(); renderHistorial(); renderAjustes(); renderHeader();
+      checkOnboarding();
+      showToast("Copia importada correctamente");
+    }catch(err){
+      showToast("El archivo no es una copia de seguridad válida");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+/* ---------------- envío del inventario ---------------- */
+document.getElementById("btnAbrirEnvio").addEventListener("click", openEnvio);
+document.getElementById("btnCerrarEnvio").addEventListener("click", ()=>document.getElementById("overlayEnvio").classList.remove("active"));
+
+function openEnvio(){
+  if(inventario.length===0){ showToast("Añade al menos un equipo antes de enviar"); return; }
+  if(!ajustes.emailDestino || !ajustes.nombre){
+    showToast("Completa tu nombre y el correo de destino en Ajustes");
+    goTo("ajustes");
+    return;
+  }
+  const resumen = document.getElementById("envioResumen");
+  const porEstado = { bueno:0, regular:0, reparacion:0, baja:0 };
+  let totalUnidades = 0;
+  inventario.forEach(e=>{ porEstado[e.estado] = (porEstado[e.estado]||0)+1; totalUnidades += Number(e.cantidad)||1; });
+  const remitenteMostrado = (ajustes.google && ajustes.google.email) ? ajustes.google.email : (ajustes.correoRemitente || "—");
+  resumen.innerHTML = `
+    <div class="field"><label>RRPP / Empresa</label><div>${escapeHTML(ajustes.nombre)}${ajustes.empresa? " · "+escapeHTML(ajustes.empresa):""}${ajustes.provincia? " · "+escapeHTML(ajustes.provincia):""}</div></div>
+    <div class="field-row">
+      <div class="field"><label>Clave</label><div>${escapeHTML(ajustes.clave||"—")}</div></div>
+      <div class="field"><label>Fecha del inventario</label><div>${formatFechaCorta(ajustes.fechaInventario)}</div></div>
+    </div>
+    <div class="field"><label>De</label><div>${escapeHTML(remitenteMostrado)}${ajustes.google && ajustes.google.email ? " (Google vinculado)" : ""}</div></div>
+    <div class="field"><label>Para</label><div>${escapeHTML(ajustes.emailDestino)}</div></div>
+    <div class="field"><label>Equipos incluidos</label><div>${inventario.length} líneas · ${totalUnidades} unidades — Bueno ${porEstado.bueno||0} · Regular ${porEstado.regular||0} · En reparación ${porEstado.reparacion||0} · Baja ${porEstado.baja||0}</div></div>
+  `;
+  const googleListo = ajustes.google && ajustes.google.email;
+  const ejsConfigurado = ajustes.ejsService && ajustes.ejsTemplate && ajustes.ejsPublic;
+  document.getElementById("envioAyuda").textContent = googleListo
+    ? `Se enviará de verdad desde ${ajustes.google.email} (Gmail).`
+    : ejsConfigurado
+      ? "Se intentará enviar automáticamente en segundo plano (EmailJS)."
+      : "No hay envío automático configurado (ver Ajustes). Se abrirá tu app de correo o de compartir.";
+
+  const botones = document.getElementById("envioBotones");
+  botones.innerHTML = "";
+  const btnEnviar = document.createElement("button");
+  btnEnviar.className = "btn btn-primary btn-block";
+  btnEnviar.textContent = (googleListo || ejsConfigurado) ? "Enviar ahora" : "Continuar y compartir";
+  btnEnviar.addEventListener("click", ()=>enviarInventario());
+  botones.appendChild(btnEnviar);
+
+  const btnDescargar = document.createElement("button");
+  btnDescargar.className = "btn btn-outline btn-block";
+  btnDescargar.textContent = "Descargar copia en Excel";
+  btnDescargar.addEventListener("click", async ()=>{
+    showToast("Generando Excel…", 1500);
+    try{
+      const excel = await construirExcelInventario();
+      const blob = base64ToBlob(excel.base64, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = excel.filename;
+      a.click();
+      showToast("Excel descargado");
+    }catch(err){
+      console.warn(err);
+      showToast("No se pudo generar el Excel");
+    }
+  });
+  botones.appendChild(btnDescargar);
+
+  document.getElementById("overlayEnvio").classList.add("active");
+}
+
+function nombreArchivoExcel(ajustesParam){
+  const a = ajustesParam || ajustes;
+  const base = (a.empresa || a.nombre || "inventario")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-zA-Z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+  return `Inventario_${base||"equipos"}_${a.fechaInventario||hoyISO()}.xlsx`;
+}
+
+function arrayBufferToBase64(buffer){
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  }
+  return btoa(binary);
+}
+
+async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoISO){
+  const items = itemsParam || inventario;
+  const a = ajustesParam || ajustes;
+  const totalUnidades = items.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  const correoRemitenteFinal = a.correoRemitenteResuelto || (a.google && a.google.email) || a.correoRemitente || "";
+
+  if(!window.ExcelJS) throw new Error("La librería para generar Excel no está disponible (revisa tu conexión)");
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Inventario de Equipos";
+  wb.created = new Date();
+
+  const wsInv = wb.addWorksheet("Inventario");
+  wsInv.columns = [
+    { header:"#", key:"n", width:5 },
+    { header:"Descripción", key:"descripcion", width:28 },
+    { header:"Código", key:"codigo", width:14 },
+    { header:"Cantidad", key:"cantidad", width:9 },
+    { header:"Marca", key:"marca", width:14 },
+    { header:"Modelo", key:"modelo", width:14 },
+    { header:"Estado", key:"estado", width:13 },
+    { header:"Ubicación", key:"ubicacion", width:22 },
+    { header:"Notas", key:"notas", width:26 },
+    { header:"QR", key:"qr", width:15 },
+    { header:"Fecha de alta", key:"fecha", width:16 }
+  ];
+  wsInv.getRow(1).font = { bold:true };
+  wsInv.getRow(1).alignment = { vertical:"middle" };
+
+  if(items.length===0){
+    wsInv.addRow({ n:"", descripcion:"(sin equipos)" });
+  }else{
+    for(let i=0;i<items.length;i++){
+      const e = items[i];
+      wsInv.addRow({
+        n: i+1,
+        descripcion: e.descripcion || "",
+        codigo: e.codigo || "",
+        cantidad: Number(e.cantidad)||1,
+        marca: e.marca || "",
+        modelo: e.modelo || "",
+        estado: (ESTADOS[e.estado]||{}).label || e.estado || "",
+        ubicacion: e.ubicacion || "",
+        notas: e.notas || "",
+        qr: e.qrCompleto ? "" : "—",
+        fecha: e.fechaAlta ? formatFecha(e.fechaAlta) : ""
+      });
+      const filaExcelIdx = i + 2; // 1 = cabecera
+      if(e.qrCompleto && window.QRCode){
+        try{
+          const dataUrl = await QRCode.toDataURL(e.qrCompleto, { width:160, margin:1 });
+          const imgId = wb.addImage({ base64: dataUrl, extension: "png" });
+          // tl.row/col son 0-based; la cabecera ocupa la fila 0, así que la fila i son ítems empieza en 1
+          wsInv.addImage(imgId, { tl:{ col:9, row: filaExcelIdx-1 }, ext:{ width:56, height:56 } });
+          wsInv.getRow(filaExcelIdx).height = 44;
+        }catch(err){ console.warn("No se pudo generar el QR de la fila", i, err); }
+      }
+    }
+  }
+
+  const wsDatos = wb.addWorksheet("Datos RRPP");
+  wsDatos.columns = [
+    { header:"Campo", key:"campo", width:32 },
+    { header:"Valor", key:"valor", width:36 }
+  ];
+  wsDatos.getRow(1).font = { bold:true };
+  [
+    ["Nombre del empleado o empresa", a.nombre || ""],
+    ["Empresa / RRPP", a.empresa || ""],
+    ["Provincia", a.provincia || ""],
+    ["Clave asignada", a.clave || ""],
+    ["Fecha del inventario", formatFechaCorta(a.fechaInventario)],
+    ["Correo desde el que se envía", correoRemitenteFinal],
+    ["Correo de destino", a.emailDestino || ""],
+    ["Total de líneas de equipo", items.length],
+    ["Total de unidades", totalUnidades],
+    ["Fecha y hora de guardado/envío", formatFecha(fechaGuardadoISO || new Date().toISOString())]
+  ].forEach(([campo, valor]) => wsDatos.addRow({ campo, valor }));
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const base64 = arrayBufferToBase64(buffer);
+  return { base64, filename: nombreArchivoExcel(a) };
+}
+
+function construirCuerpoTexto(){
+  const lineas = inventario.map((e,i)=>
+    `${i+1}. ${e.descripcion} [${e.codigo||"s/cod"}] x${Number(e.cantidad)||1} — ${[e.marca,e.modelo].filter(Boolean).join(" ")||"—"} — Estado: ${(ESTADOS[e.estado]||{}).label||e.estado} — Ubicación: ${e.ubicacion||"—"}${e.qrCompleto?" — QR guardado":""}`
+  );
+  const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  return `Inventario de equipos\nRRPP/Empresa: ${ajustes.nombre}${ajustes.empresa? " ("+ajustes.empresa+")":""}${ajustes.provincia? " — "+ajustes.provincia:""}\nClave: ${ajustes.clave||"—"}\nFecha del inventario: ${formatFechaCorta(ajustes.fechaInventario)}\nEnviado desde: ${(ajustes.google && ajustes.google.email) || ajustes.correoRemitente || "—"}\nTotal: ${inventario.length} líneas / ${totalUnidades} unidades\n\n${lineas.join("\n")}`;
+}
+
+function construirCuerpoHTML(){
+  const filas = inventario.map((e,i)=>`
+    <tr>
+      <td style="padding:6px;border:1px solid #ddd;">${i+1}</td>
+      <td style="padding:6px;border:1px solid #ddd;">${escapeHTML(e.descripcion)}</td>
+      <td style="padding:6px;border:1px solid #ddd;">${escapeHTML(e.codigo||"—")}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:right;">${Number(e.cantidad)||1}</td>
+      <td style="padding:6px;border:1px solid #ddd;">${escapeHTML((ESTADOS[e.estado]||{}).label||e.estado)}</td>
+      <td style="padding:6px;border:1px solid #ddd;">${escapeHTML(e.ubicacion||"—")}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center;">${e.qrCompleto?"Sí":"No"}</td>
+    </tr>`).join("");
+  const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  return `<p>
+    <b>RRPP/Empresa:</b> ${escapeHTML(ajustes.nombre)}${ajustes.empresa? " ("+escapeHTML(ajustes.empresa)+")":""}${ajustes.provincia? " — "+escapeHTML(ajustes.provincia):""}<br>
+    <b>Clave:</b> ${escapeHTML(ajustes.clave||"—")} &nbsp; <b>Fecha del inventario:</b> ${formatFechaCorta(ajustes.fechaInventario)}<br>
+    <b>Enviado desde:</b> ${escapeHTML((ajustes.google && ajustes.google.email) || ajustes.correoRemitente || "—")}<br>
+    <b>Total:</b> ${inventario.length} líneas / ${totalUnidades} unidades<br>
+    <i>Se adjunta el inventario completo en Excel (hoja "Inventario" + hoja "Datos RRPP").</i>
+  </p>
+  <table style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
+    <thead><tr>
+      <th style="padding:6px;border:1px solid #ddd;">#</th>
+      <th style="padding:6px;border:1px solid #ddd;">Descripción</th>
+      <th style="padding:6px;border:1px solid #ddd;">Código</th>
+      <th style="padding:6px;border:1px solid #ddd;">Cant.</th>
+      <th style="padding:6px;border:1px solid #ddd;">Estado</th>
+      <th style="padding:6px;border:1px solid #ddd;">Ubicación</th>
+      <th style="padding:6px;border:1px solid #ddd;">QR</th>
+    </tr></thead>
+    <tbody>${filas}</tbody>
+  </table>`;
+}
+
+async function enviarInventario(){
+  const botones = document.getElementById("envioBotones");
+  botones.innerHTML = `<p class="small-note">Enviando…</p>`;
+  const asunto = `Inventario de equipos — ${ajustes.empresa || ajustes.nombre} — ${formatFechaCorta(ajustes.fechaInventario)}`;
+
+  // 1) Intento: envío real desde Gmail (cuenta de Google vinculada)
+  if(ajustes.google && ajustes.google.email){
+    try{
+      await intentarEnvioGmail(asunto, construirCuerpoHTML());
+      marcarEnviado();
+      document.getElementById("overlayEnvio").classList.remove("active");
+      showToast("Inventario enviado desde " + ajustes.google.email);
+      return;
+    }catch(err){
+      console.warn("Fallo envío con Gmail:", err);
+      showToast("No se pudo enviar con Gmail. Probando alternativa…");
+    }
+  }
+
+  // 2) Intento: EmailJS (si está configurado)
+  const ejsConfigurado = ajustes.ejsService && ajustes.ejsTemplate && ajustes.ejsPublic;
+  if(ejsConfigurado){
+    try{
+      if(!window.emailjs) throw new Error("EmailJS no disponible");
+      const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+      emailjs.init({ publicKey: ajustes.ejsPublic });
+      await emailjs.send(ajustes.ejsService, ajustes.ejsTemplate, {
+        to_email: ajustes.emailDestino,
+        reply_to: ajustes.correoRemitente || ajustes.emailDestino,
+        from_name: ajustes.nombre,
+        empresa: ajustes.empresa,
+        provincia: ajustes.provincia,
+        clave: ajustes.clave,
+        fecha: formatFechaCorta(ajustes.fechaInventario),
+        total_equipos: String(inventario.length),
+        total_unidades: String(totalUnidades),
+        cuerpo_html: construirCuerpoHTML()
+      });
+      marcarEnviado();
+      document.getElementById("overlayEnvio").classList.remove("active");
+      showToast("Inventario enviado correctamente");
+      return;
+    }catch(err){
+      console.warn("Fallo envío silencioso:", err);
+      showToast("No se pudo enviar en segundo plano. Abriendo alternativa…");
+    }
+  }
+
+  // 3) Alternativa: compartir (con fotos) o mailto
+  await enviarConCompartirOMailto();
+}
+
+async function enviarConCompartirOMailto(){
+  const texto = construirCuerpoTexto();
+  const asunto = `Inventario de equipos — ${ajustes.empresa || ajustes.nombre} — ${formatFechaCorta(ajustes.fechaInventario)}`;
+
+  // Intento 1: Web Share API con el Excel del inventario (y fotos si el navegador lo permite)
+  try{
+    if(navigator.canShare){
+      const excel = await construirExcelInventario();
+      const excelBlob = base64ToBlob(excel.base64, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      const files = [ new File([excelBlob], excel.filename, { type: excelBlob.type }) ];
+      const fotos = inventario.filter(e=>e.foto).slice(0,8);
+      for(const eq of fotos){
+        try{
+          const blob = await (await fetch(eq.foto)).blob();
+          files.push(new File([blob], (eq.codigo||eq.descripcion||"foto")+".jpg", { type:"image/jpeg" }));
+        }catch(e){ /* ignorar foto individual si falla */ }
+      }
+      const shareData = { title: asunto, text: texto + `\n\nDestinatario sugerido: ${ajustes.emailDestino}`, files };
+      if(navigator.canShare(shareData)){
+        await navigator.share(shareData);
+        marcarEnviado();
+        document.getElementById("overlayEnvio").classList.remove("active");
+        showToast("Elige tu app de correo para completar el envío (el Excel va adjunto)");
+        return;
+      }
+    }
+  }catch(err){
+    if(err && err.name === "AbortError"){
+      document.getElementById("overlayEnvio").classList.remove("active");
+      return;
+    }
+    console.warn("Web Share falló:", err);
+  }
+
+  // Intento 2: mailto (sin adjuntos, limitación del propio protocolo)
+  const mailto = `mailto:${encodeURIComponent(ajustes.emailDestino)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(texto + "\n\n(Las fotos no se adjuntan por esta vía; revisa la app para verlas.)")}`;
+  window.location.href = mailto;
+  marcarEnviado();
+  document.getElementById("overlayEnvio").classList.remove("active");
+  showToast("Se abrió tu app de correo con el inventario redactado");
+}
+
+function marcarEnviado(){
+  ajustes.ultimoEnvio = new Date().toISOString();
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+  renderHeader();
+}
+
+/* ---------------- historial de inventarios finalizados ---------------- */
+document.getElementById("btnFinalizarInventario").addEventListener("click", ()=>{
+  if(inventario.length===0){ showToast("No hay equipos en el inventario actual"); return; }
+  if(!confirm("Esto guardará el inventario actual en el Historial y vaciará la lista para empezar uno nuevo (no se acumula). ¿Continuar?")) return;
+
+  const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  const snapshot = {
+    id: uid(),
+    fecha: ajustes.fechaInventario || hoyISO(),
+    fechaGuardado: new Date().toISOString(),
+    ajustesSnapshot: {
+      nombre: ajustes.nombre || "",
+      empresa: ajustes.empresa || "",
+      provincia: ajustes.provincia || "",
+      clave: ajustes.clave || "",
+      fechaInventario: ajustes.fechaInventario || hoyISO(),
+      correoRemitenteResuelto: (ajustes.google && ajustes.google.email) || ajustes.correoRemitente || "",
+      emailDestino: ajustes.emailDestino || ""
+    },
+    items: JSON.parse(JSON.stringify(inventario)),
+    totalLineas: inventario.length,
+    totalUnidades
+  };
+  historial.unshift(snapshot);
+  saveJSON(STORE_KEYS.historial, historial);
+
+  inventario = [];
+  saveJSON(STORE_KEYS.inventario, inventario);
+  ajustes.fechaInventario = hoyISO();
+  saveJSON(STORE_KEYS.ajustes, ajustes);
+
+  renderInventario();
+  renderAjustes();
+  renderHistorial();
+  showToast("Inventario guardado en Historial. Lista vacía para uno nuevo.");
+});
+
+function renderHistorial(){
+  const wrap = document.getElementById("historialListWrap");
+  if(historial.length===0){
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="headline">Aún no hay inventarios finalizados</div>
+      <p>Cuando pulses «Finalizar inventario y empezar uno nuevo» en la pestaña Inventario, aparecerá aquí con opción de descargarlo.</p>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = historial.map(h=>`
+    <div class="card" data-hist="${h.id}" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div>
+          <div class="headline" style="font-size:15px;">${escapeHTML(formatFechaCorta(h.fecha))}</div>
+          <div class="small-note" style="margin-top:2px;">${escapeHTML(h.ajustesSnapshot.nombre)}${h.ajustesSnapshot.empresa? " · "+escapeHTML(h.ajustesSnapshot.empresa):""}</div>
+        </div>
+        <span class="qty-pill">${h.totalLineas} líneas · ${h.totalUnidades} uds</span>
+      </div>
+      <p class="hint" style="margin:8px 0 12px;">Guardado el ${escapeHTML(formatFecha(h.fechaGuardado))}</p>
+      <div class="btn-row">
+        <button class="btn btn-outline" data-accion="descargar" data-hist="${h.id}" style="flex:1;">Descargar Excel</button>
+        <button class="btn btn-danger" data-accion="eliminar" data-hist="${h.id}" style="flex:1;">Eliminar</button>
+      </div>
+    </div>`).join("");
+
+  wrap.querySelectorAll('[data-accion="descargar"]').forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const h = historial.find(x=>x.id===btn.dataset.hist);
+      if(!h) return;
+      showToast("Generando Excel…", 1500);
+      try{
+        const excel = await construirExcelInventario(h.items, h.ajustesSnapshot, h.fechaGuardado);
+        const blob = base64ToBlob(excel.base64, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = excel.filename;
+        a.click();
+        showToast("Excel descargado");
+      }catch(err){
+        console.warn(err);
+        showToast("No se pudo generar el Excel");
+      }
+    });
+  });
+  wrap.querySelectorAll('[data-accion="eliminar"]').forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(!confirm("¿Eliminar este inventario del historial? No se puede deshacer.")) return;
+      historial = historial.filter(x=>x.id!==btn.dataset.hist);
+      saveJSON(STORE_KEYS.historial, historial);
+      renderHistorial();
+      showToast("Eliminado del historial");
+    });
+  });
+}
+
+/* ---------------- registro del service worker ---------------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js").catch(err=>console.warn("SW no registrado:", err));
+  });
+}
+
+/* ---------------- arranque ---------------- */
+renderHeader();
+renderInventario();
+renderCatalogo();
+renderHistorial();
+renderAjustes();
+checkOnboarding();
+
+})();
+</script>
+</body>
+</html>

@@ -413,7 +413,7 @@ main{ flex:1; padding: 14px 14px calc(90px + var(--safe-bottom)); }
         Subir foto del QR
       </button>
       <input type="file" accept="image/*" capture="environment" id="fotoQRInput" style="display:none;">
-      <p class="hint" style="margin:0 0 14px;">Se leen los 8 primeros caracteres del QR como código de producto, se busca su descripción en el catálogo y se guarda el QR completo leído. Si la cámara en directo no funciona en tu navegador, usa «Subir foto del QR».</p>
+      <p class="hint" style="margin:0 0 14px;">Se omiten los 4 primeros caracteres del QR (relleno) y se leen los 6 siguientes como código de producto; se busca su descripción en el catálogo y se guarda el QR completo leído. Si la cámara en directo no funciona en tu navegador, usa «Subir foto del QR».</p>
 
       <div class="card">
         <div class="field" id="catalogPickWrap" style="display:none;">
@@ -785,7 +785,8 @@ const ESTADOS = {
   baja: { label: "Baja", clase: "estado-baja" }
 };
 
-const LONGITUD_CODIGO_QR = 8;
+const PREFIJO_QR_LONGITUD = 4;   // caracteres iniciales a omitir (normalmente ceros de relleno)
+const LONGITUD_CODIGO_QR = 6;    // dígitos del código de producto, justo después del prefijo
 
 /* ---------------- almacenamiento ---------------- */
 function loadJSON(key, fallback){
@@ -1289,7 +1290,7 @@ document.getElementById("btnGuardarEquipo").addEventListener("click", ()=>{
   if(!descripcion){ showToast("Escribe al menos la descripción del equipo"); return; }
   const codigo = document.getElementById("fCodigo").value.trim();
   if(codigo){
-    const duplicado = inventario.find(e => e.id!==formEditId && (e.codigo||"").toUpperCase()===codigo.toUpperCase());
+    const duplicado = inventario.find(e => e.id!==formEditId && normalizarCodigo(e.codigo)===normalizarCodigo(codigo));
     if(duplicado){
       showToast(`El código ${codigo} ya está registrado en este inventario como "${duplicado.descripcion || "sin descripción"}". Un código/QR es un identificador único: edita esa línea en vez de duplicarla.`, 5500);
       return;
@@ -1483,13 +1484,13 @@ function onQRDetected(text){
   stopScan();
 
   const raw = String(text || "");
-  const codigo = raw.trim().slice(0, LONGITUD_CODIGO_QR);
+  const codigo = raw.trim().slice(PREFIJO_QR_LONGITUD, PREFIJO_QR_LONGITUD + LONGITUD_CODIGO_QR);
   if(!codigo){
     showToast("El QR no contiene un código válido");
     return;
   }
 
-  const existente = inventario.find(e => (e.codigo||"").toUpperCase() === codigo.toUpperCase());
+  const existente = inventario.find(e => normalizarCodigo(e.codigo) === normalizarCodigo(codigo));
   if(existente){
     showToast(`Ese QR (código ${codigo}) ya está registrado en este inventario como "${existente.descripcion || "sin descripción"}". Un QR es un identificador único: no se puede volver a registrar en el mismo inventario. Se abre para que lo edites.`, 5500);
     openForm(existente.id);
@@ -1501,7 +1502,7 @@ function onQRDetected(text){
   formQrCompleto = raw;
   updateQrFlag();
 
-  const item = catalogo.items.find(c => (c.codigo||"").toUpperCase() === codigo.toUpperCase());
+  const item = catalogo.items.find(c => normalizarCodigo(c.codigo) === normalizarCodigo(codigo));
   if(item){
     document.getElementById("fDescripcion").value = item.descripcion || "";
     document.getElementById("fMarca").value = item.marca || "";
@@ -1563,6 +1564,18 @@ document.getElementById("spFile").addEventListener("change", (e)=>{
   reader.readAsBinaryString(file);
   e.target.value = "";
 });
+
+function normalizarCodigo(c){
+  // Compara códigos ignorando ceros a la izquierda: así da igual que el QR
+  // traiga "00503323" y el catálogo (tras pasar por Excel) tenga "503323",
+  // o al revés. Solo se recortan ceros si el código es puramente numérico.
+  c = String(c==null ? "" : c).trim();
+  if(/^\d+$/.test(c)){
+    c = c.replace(/^0+/, "");
+    if(c === "") c = "0";
+  }
+  return c.toUpperCase();
+}
 
 function mapCatalogRow(row){
   const norm = {};
@@ -1761,7 +1774,8 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
     { header:"Estado", key:"estado", width:13 },
     { header:"Ubicación", key:"ubicacion", width:22 },
     { header:"Notas", key:"notas", width:26 },
-    { header:"QR", key:"qr", width:15 },
+    { header:"QR (imagen)", key:"qrImg", width:15 },
+    { header:"QR completo (texto)", key:"qrTexto", width:34 },
     { header:"Fecha de alta", key:"fecha", width:16 }
   ];
   wsInv.getRow(1).font = { bold:true };
@@ -1782,7 +1796,8 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
         estado: (ESTADOS[e.estado]||{}).label || e.estado || "",
         ubicacion: e.ubicacion || "",
         notas: e.notas || "",
-        qr: e.qrCompleto ? "" : "—",
+        qrImg: e.qrCompleto ? "" : "—",
+        qrTexto: e.qrCompleto || "—",
         fecha: e.fechaAlta ? formatFecha(e.fechaAlta) : ""
       });
       const filaExcelIdx = i + 2; // 1 = cabecera

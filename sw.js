@@ -1,7 +1,7 @@
 // Service worker: cachea el "app shell" para que el registro de inventario
 // funcione sin conexión. El envío de correo y la descarga del catálogo sí
 // necesitan conexión.
-const CACHE_NAME = "inventario-equipos-v3";
+const CACHE_NAME = "inventario-equipos-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -12,7 +12,7 @@ const APP_SHELL = [
   "./assets/logo-zener.png",
   "./assets/exceljs.min.js",
   "./assets/qrcode.min.js",
-  "./assets/jsQR.js",
+  "./assets/zxing.min.js",
   "./assets/xlsx.full.min.js",
   "./assets/email.min.js"
 ];

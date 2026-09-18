@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#2F4F42">
-<meta name="description" content="Registro y envío por correo del inventario de equipos de campo.">
+<meta name="description" content="Registro y envío por correo del inventario de equipos de campo.">
 <title>Inventario de Equipos</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 
 <script src="assets/xlsx.full.min.js"></script>
-<script src="assets/jsQR.js"></script>
+<script src="assets/zxing.min.js"></script>
 <script src="assets/email.min.js"></script>
 <script src="assets/exceljs.min.js"></script>
 <script src="assets/qrcode.min.js"></script>
@@ -1416,6 +1416,7 @@ let formEditId = null;       // id del equipo que se está editando, o null si e
 let formFotoData = null;     // foto en base64 (dataURL) ya redimensionada, o null
 let formEstado = "bueno";    // estado seleccionado en los chips (Bueno/Regular/En reparación/Baja)
 let formQrCompleto = null;   // texto completo del QR si el equipo se dio de alta escaneando uno
+let formAgregarACatalogo = false; // si true, al guardar este equipo también se añade su código+descripción al catálogo (ver onQRDetected)
 
 // Abre el formulario. Si "id" es un id real, precarga los datos de ese
 // equipo (modo edición); si es null, lo deja todo vacío con los valores
@@ -1435,6 +1436,7 @@ function openForm(id){
   formFotoData = (eq && eq.foto) || null;
   formEstado = (eq && eq.estado) || "bueno";
   formQrCompleto = (eq && eq.qrCompleto) || null;
+  formAgregarACatalogo = false; // se activa desde onQRDetected solo cuando corresponda
   updatePhotoPreview();
   updateStatusChips();
   updateQrFlag();
@@ -1571,6 +1573,21 @@ document.getElementById("btnGuardarEquipo").addEventListener("click", ()=>{
     inventario.push(data);
   }
   saveJSON(STORE_KEYS.inventario, inventario);
+
+  // Si el código venía de un Bidi/QR que no estaba en el catálogo y se
+  // confirmó querer añadirlo (ver onQRDetected), se aprovecha esta misma
+  // descripción/marca/modelo para dar de alta esa entrada en el catálogo,
+  // así la próxima vez que se escanee ese código ya se reconoce solo. Se
+  // comprueba primero que no se haya colado ya (por ejemplo, si se importó
+  // un catálogo nuevo mientras tanto) para no duplicarlo ahí también.
+  if(formAgregarACatalogo && codigo && !catalogo.items.some(c=>normalizarCodigo(c.codigo)===normalizarCodigo(codigo))){
+    catalogo.items.push({ codigo, descripcion, marca: data.marca, modelo: data.modelo });
+    catalogo.actualizado = new Date().toISOString();
+    saveJSON(STORE_KEYS.catalogo, catalogo);
+    renderCatalogo();
+  }
+  formAgregarACatalogo = false;
+
   showToast(formEditId ? "Equipo actualizado" : "Equipo añadido");
   goTo("inventario");
   renderInventario();
@@ -1625,7 +1642,7 @@ document.getElementById("catalogPick").addEventListener("input", (e)=>{
    Dos formas de leer un QR, que acaban en la misma función onQRDetected():
      1) Cámara en directo (startScan): pide permiso de cámara, muestra el
         vídeo a pantalla completa, y en cada fotograma intenta decodificar
-        un QR con jsQR hasta que encuentra uno.
+        un código (QR o Data Matrix) con ZXing hasta que encuentra uno.
      2) Foto (decodificarQRDesdeArchivo): el usuario hace/elige una foto y se
         decodifica esa imagen fija, sin cámara en directo. Es la alternativa
         que casi siempre funciona cuando la cámara en directo falla (por
@@ -1661,7 +1678,7 @@ async function startScan(){
   // Primero se intenta pedir la cámara trasera (más práctica para escanear
   // etiquetas) EN ALTA RESOLUCIÓN: sin pedirlo explícitamente, algunas
   // cámaras (sobre todo webcams de portátil) entregan vídeo a solo
-  // 640x480, insuficiente para que jsQR lea con fiabilidad un QR con
+  // 640x480, insuficiente para leer con fiabilidad un código con
   // bastante información codificada dentro. "ideal" es solo una preferencia
   // (no obliga), así que si el dispositivo no llega a esa resolución,
   // igualmente entrega la máxima que tenga en vez de fallar. Si aun así
@@ -1702,30 +1719,36 @@ async function startScan(){
 
     // Si el navegador soporta el detector de códigos NATIVO (Chrome/Edge en
     // Android y en muchos ordenadores), se usa como método principal: suele
-    // leer QR densos o en malas condiciones bastante mejor que jsQR, porque
-    // aprovecha el mismo motor de reconocimiento que usa el propio sistema
-    // operativo (el mismo que usan apps de cámara nativas). Si no está
-    // disponible (Firefox, Safari, navegadores antiguos...), se seguirá
-    // usando jsQR como hasta ahora — nadie se queda sin poder escanear.
+    // leer códigos densos o en malas condiciones bastante mejor que una
+    // librería JS pura, porque aprovecha el mismo motor de reconocimiento
+    // que usa el propio sistema operativo (el mismo que usan apps de
+    // cámara nativas). Se piden explícitamente los dos formatos que usan
+    // las etiquetas reales de los equipos: "qr_code" (QR normal) y
+    // "data_matrix" (los códigos tipo Bidi de las etiquetas industriales,
+    // que a simple vista se parecen a un QR pero son un formato distinto).
+    // Si no está disponible (Firefox, Safari, navegadores antiguos...), se
+    // sigue usando ZXing (más abajo) como hasta ahora — nadie se queda sin
+    // poder escanear.
     let barcodeDetector = null;
     if("BarcodeDetector" in window){
       try{
         const formatos = await BarcodeDetector.getSupportedFormats();
-        if(formatos.includes("qr_code")) barcodeDetector = new BarcodeDetector({ formats:["qr_code"] });
-      }catch(e){ /* si falla la comprobación, se sigue tranquilamente con jsQR */ }
+        const usar = ["qr_code","data_matrix"].filter(f=>formatos.includes(f));
+        if(usar.length) barcodeDetector = new BarcodeDetector({ formats: usar });
+      }catch(e){ /* si falla la comprobación, se sigue tranquilamente con ZXing */ }
     }
+    const lectorZXing = crearLectorZXing();
 
-    // Bucle de lectura: en cada fotograma disponible, se intenta leer un QR.
-    // Con el detector nativo se le pasa el <video> directamente (es
+    // Bucle de lectura: en cada fotograma disponible, se intenta leer un
+    // código. Con el detector nativo se le pasa el <video> directamente (es
     // asíncrono, por eso "leyendo" evita lanzar una segunda detección antes
     // de que termine la anterior). Sin detector nativo, se copia el
-    // fotograma a un <canvas> invisible (jsQR necesita los píxeles en
-    // crudo, no puede leer directamente un <video>) y se le pasa a jsQR.
-    // Si no se encuentra nada, se programa el siguiente intento con
-    // requestAnimationFrame (sincronizado con el refresco de pantalla, no
-    // gasta más CPU de la necesaria). En cuanto se encuentra un código, se
-    // para el bucle (no hay más "requestAnimationFrame") y se pasa a
-    // onQRDetected.
+    // fotograma a un <canvas> invisible y se le pasa a ZXing (que sabe leer
+    // tanto QR como Data Matrix con el mismo lector). Si no se encuentra
+    // nada, se programa el siguiente intento con requestAnimationFrame
+    // (sincronizado con el refresco de pantalla, no gasta más CPU de la
+    // necesaria). En cuanto se encuentra un código, se para el bucle (no
+    // hay más "requestAnimationFrame") y se pasa a onQRDetected.
     let leyendo = false;
     const tick = async ()=>{
       if(!scanStream) return;
@@ -1737,12 +1760,11 @@ async function startScan(){
             if(codigos && codigos.length && codigos[0].rawValue){ onQRDetected(codigos[0].rawValue); return; }
           }catch(e){ /* algunos navegadores fallan puntualmente en ciertos fotogramas: se ignora y se reintenta en el siguiente */ }
           leyendo = false;
-        }else{
+        }else if(lectorZXing){
           canvas.width = video.videoWidth; canvas.height = video.videoHeight;
           ctx.drawImage(video,0,0,canvas.width,canvas.height);
-          const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-          const code = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
-          if(code && code.data){ onQRDetected(code.data); return; }
+          const texto = decodificarConZXing(lectorZXing, canvas);
+          if(texto){ onQRDetected(texto); return; }
         }
       }
       scanRAF = requestAnimationFrame(tick);
@@ -1764,16 +1786,54 @@ function stopScan(){
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
 }
 
+/* ---------- helpers de lectura con ZXing (QR + Data Matrix) ----------
+   ZXing es la librería que de verdad sabe leer los dos formatos que usan
+   las etiquetas de los equipos: QR normal y Data Matrix ("Bidi"), que a
+   simple vista se parecen pero son un formato distinto — un lector que
+   solo entienda QR (como jsQR, que se usaba antes) nunca podrá leer un
+   Data Matrix, no es un problema de resolución ni de encuadre. */
+
+// Crea un lector configurado para reconocer ambos formatos a la vez (no
+// hace falta saber de antemano cuál de los dos trae la etiqueta). Devuelve
+// null si la librería ZXing no llegó a cargar (por ejemplo, sin conexión
+// la primera vez que se abre la app).
+function crearLectorZXing(){
+  if(!window.ZXing) return null;
+  try{
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX]);
+    const lector = new ZXing.MultiFormatReader();
+    lector.setHints(hints);
+    return lector;
+  }catch(e){ console.warn("No se pudo preparar ZXing:", e); return null; }
+}
+// Intenta leer un código en lo que haya dibujado en el <canvas> dado.
+// Devuelve el texto si lo encuentra, o null si no hay ningún código
+// reconocible en esa imagen (NotFoundException de ZXing, el caso normal
+// en la mayoría de fotogramas mientras se está encuadrando el QR).
+function decodificarConZXing(lector, canvas){
+  try{
+    const source = new ZXing.HTMLCanvasElementLuminanceSource(canvas);
+    const binarizer = new ZXing.HybridBinarizer(source);
+    const bitmap = new ZXing.BinaryBitmap(binarizer);
+    const resultado = lector.decode(bitmap);
+    return resultado.getText();
+  }catch(e){
+    return null; // no se encontró ningún código en este fotograma/imagen, es normal
+  }
+}
+
 // La alternativa a la cámara en directo: recibe un archivo de imagen (foto
-// tomada o elegida de la galería) y busca un QR en ella. Primero lo intenta
-// con el detector nativo del navegador (si está disponible: suele acertar
-// mejor con fotos de peor calidad o QR densos), y si no está disponible o
-// no encuentra nada, cae en jsQR sobre esa misma imagen (dibujada en un
-// <canvas>, que es como jsQR necesita recibir los píxeles). Se usa cuando
-// la cámara en directo no está disponible o falla (ver el botón "Subir
-// foto del QR"), y suele funcionar en más navegadores porque no depende de
-// getUserMedia ni de peticiones de permiso en tiempo real, solo de un
-// simple selector de archivo.
+// tomada o elegida de la galería) y busca un código (QR o Data Matrix) en
+// ella. Primero lo intenta con el detector nativo del navegador (si está
+// disponible: suele acertar mejor con fotos de peor calidad o códigos
+// densos), y si no está disponible o no encuentra nada, cae en ZXing sobre
+// esa misma imagen (dibujada en un <canvas>). Se usa cuando la cámara en
+// directo no está disponible o falla (ver el botón "Subir foto del QR"), y
+// suele funcionar en más navegadores porque no depende de getUserMedia ni
+// de peticiones de permiso en tiempo real, solo de un simple selector de
+// archivo — además, una foto normal del móvil suele tener mejor enfoque y
+// resolución que un fotograma de vídeo en directo.
 async function decodificarQRDesdeArchivo(file){
   const img = await new Promise((resolve, reject)=>{
     const image = new Image();
@@ -1786,22 +1846,22 @@ async function decodificarQRDesdeArchivo(file){
   if("BarcodeDetector" in window){
     try{
       const formatos = await BarcodeDetector.getSupportedFormats();
-      if(formatos.includes("qr_code")){
-        const detector = new BarcodeDetector({ formats:["qr_code"] });
+      const usar = ["qr_code","data_matrix"].filter(f=>formatos.includes(f));
+      if(usar.length){
+        const detector = new BarcodeDetector({ formats: usar });
         const codigos = await detector.detect(img);
         if(codigos && codigos.length && codigos[0].rawValue) return codigos[0].rawValue;
       }
-    }catch(e){ /* si el detector nativo falla, se prueba igualmente con jsQR más abajo */ }
+    }catch(e){ /* si el detector nativo falla, se prueba igualmente con ZXing más abajo */ }
   }
 
   const canvas = document.createElement("canvas");
   canvas.width = img.width; canvas.height = img.height;
-  const ctx = canvas.getContext("2d", { willReadFrequently:true });
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0,0,canvas.width,canvas.height);
-  const code = window.jsQR ? jsQR(data.data, data.width, data.height) : null;
-  if(code && code.data) return code.data;
-  throw new Error("No se detectó ningún QR en la imagen");
+  canvas.getContext("2d", { willReadFrequently:true }).drawImage(img, 0, 0);
+  const lector = crearLectorZXing();
+  const texto = lector ? decodificarConZXing(lector, canvas) : null;
+  if(texto) return texto;
+  throw new Error("No se detectó ningún código en la imagen");
 }
 document.getElementById("btnSubirFotoQR").addEventListener("click", ()=>document.getElementById("fotoQRInput").click());
 document.getElementById("fotoQRInput").addEventListener("change", async (e)=>{
@@ -1821,7 +1881,7 @@ document.getElementById("fotoQRInput").addEventListener("change", async (e)=>{
 
 // Se llama tanto desde la cámara en directo (startScan) como desde "Subir
 // foto del QR" (decodificarQRDesdeArchivo), con el texto bruto que haya
-// leído jsQR. Hace tres cosas, en este orden:
+// leído el lector (nativo o ZXing). Hace tres cosas, en este orden:
 //   1) Extrae el código de producto del texto bruto (ver la explicación de
 //      PREFIJO_QR_LONGITUD/LONGITUD_CODIGO_QR al principio del archivo).
 //   2) Comprueba que ese código no esté ya en el inventario ACTUAL (un QR
@@ -1848,6 +1908,10 @@ function onQRDetected(text){
   // ¿Ese código ya está en el inventario que se está montando ahora mismo?
   // normalizarCodigo() ignora ceros a la izquierda al comparar (ver su
   // definición más abajo) para que dé igual cómo esté escrito cada lado.
+  // Esta comprobación va SIEMPRE primero, tanto si el código se puede
+  // insertar solo (se encuentra en el catálogo) como si hay que
+  // completarlo a mano: un QR es el identificador de una unidad física y
+  // nunca puede quedar duplicado en el mismo inventario.
   const existente = inventario.find(e => normalizarCodigo(e.codigo) === normalizarCodigo(codigo));
   if(existente){
     showToast(`Ese QR (código ${codigo}) ya está registrado en este inventario como "${existente.descripcion || "sin descripción"}". Un QR es un identificador único: no se puede volver a registrar en el mismo inventario. Se abre para que lo edites.`, 5500);
@@ -1855,20 +1919,57 @@ function onQRDetected(text){
     return;
   }
 
+  const item = catalogo.items.find(c => normalizarCodigo(c.codigo) === normalizarCodigo(codigo));
+
+  if(item){
+    // Código encontrado en el catálogo: se inserta DIRECTAMENTE en el
+    // inventario, sin pasar por el formulario ni pedir confirmación —
+    // cantidad 1 por defecto, estado "Bueno" por defecto. Así, al escanear
+    // muchos equipos seguidos, no hace falta tocar "Guardar" cada vez: se
+    // deja la pantalla de Añadir lista (openForm(null) al final) para
+    // encadenar el siguiente escaneo inmediatamente. Si algún dato por
+    // defecto no es correcto (cantidad, estado, ubicación...), se puede
+    // editar después desde la ficha del equipo en Inventario.
+    const nuevo = {
+      id: uid(),
+      descripcion: item.descripcion || "",
+      marca: item.marca || "",
+      modelo: item.modelo || "",
+      codigo,
+      cantidad: 1,
+      ubicacion: "",
+      notas: "",
+      estado: "bueno",
+      foto: null,
+      qrCompleto: raw,
+      fechaAlta: new Date().toISOString(),
+      fechaMod: Date.now()
+    };
+    inventario.push(nuevo);
+    saveJSON(STORE_KEYS.inventario, inventario);
+    renderInventario();
+    openForm(null); // deja el formulario en blanco, listo para el siguiente Bidi
+    showToast(`✓ "${nuevo.descripcion}" (código ${codigo}) añadido. Listo para el siguiente escaneo.`, 3200);
+    return;
+  }
+
+  // Código NO encontrado en el catálogo: no se inserta nada solo (no habría
+  // descripción), se abre el formulario con el código y el QR ya
+  // rellenados para que se complete el resto a mano antes de guardar. Se
+  // pregunta además si se quiere aprovechar para dar de alta ese código en
+  // el catálogo (con la descripción que se escriba ahora), así la próxima
+  // vez que se escanee un Bidi con ese mismo código ya se reconocerá solo.
+  const quiereAnadirloAlCatalogo = confirm(`El código ${codigo} no existe en el catálogo.\n\n¿Quieres añadirlo ahora al catálogo de productos (con la descripción que escribas a continuación) para que se reconozca automáticamente la próxima vez?`);
   openForm(null);
   document.getElementById("fCodigo").value = codigo;
   // Se guarda el texto COMPLETO del QR (sin recortar), no solo el código:
   // así, al generar el Excel más adelante, se puede volver a convertir ese
   // texto íntegro en una imagen de QR escaneable (ver construirExcelInventario).
   formQrCompleto = raw;
+  formAgregarACatalogo = quiereAnadirloAlCatalogo;
   updateQrFlag();
-
-  const item = catalogo.items.find(c => normalizarCodigo(c.codigo) === normalizarCodigo(codigo));
-  if(item){
-    document.getElementById("fDescripcion").value = item.descripcion || "";
-    document.getElementById("fMarca").value = item.marca || "";
-    document.getElementById("fModelo").value = item.modelo || "";
-    showToast(`Código ${codigo} encontrado en el catálogo. Revisa y guarda.`);
+  if(quiereAnadirloAlCatalogo){
+    showToast(`Código ${codigo}: escribe la descripción y guarda. Se añadirá también al catálogo para futuros escaneos.`, 4800);
   }else if(catalogo.items.length === 0){
     showToast(`Código ${codigo} leído y QR guardado. Aún no has descargado el catálogo: completa la descripción a mano o impórtalo en la pestaña Catálogo.`, 4400);
   }else{

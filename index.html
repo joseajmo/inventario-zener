@@ -1,6 +1,6 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#2F4F42">
@@ -1659,11 +1659,16 @@ async function startScan(){
   }
 
   // Primero se intenta pedir la cámara trasera (más práctica para escanear
-  // etiquetas); si el dispositivo no tiene ("ideal" no obliga, pero algunos
-  // navegadores/dispositivos aún así fallan), se reintenta con cualquier
-  // cámara disponible en vez de rendirse directamente.
+  // etiquetas) EN ALTA RESOLUCIÓN: sin pedirlo explícitamente, algunas
+  // cámaras (sobre todo webcams de portátil) entregan vídeo a solo
+  // 640x480, insuficiente para que jsQR lea con fiabilidad un QR con
+  // bastante información codificada dentro. "ideal" es solo una preferencia
+  // (no obliga), así que si el dispositivo no llega a esa resolución,
+  // igualmente entrega la máxima que tenga en vez de fallar. Si aun así
+  // falla (dispositivo sin cámara trasera, o cualquier otro motivo), se
+  // reintenta con cualquier cámara disponible sin pedir nada en concreto.
   const intentosCamara = [
-    { video: { facingMode: { ideal: "environment" } } },
+    { video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
     { video: true }
   ];
   let ultimoError = null;

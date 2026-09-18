@@ -1,6 +1,6 @@
-<!DOCTYPE html>
 <html lang="es">
 <head>
+<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#2F4F42">
@@ -569,39 +569,41 @@ main{ flex:1; padding: 14px 14px calc(90px + var(--safe-bottom)); }
         </div>
       </div>
 
-      <div class="section-head" style="margin-top:18px;">
-        <h2>Cuenta de Google (envío real desde Gmail)</h2>
-      </div>
-      <div class="card">
-        <p class="small-note">Vincula tu cuenta de Google para que el inventario se envíe de verdad desde tu Gmail, y quede registrado qué cuenta lo mandó. Requiere un <b>Client ID</b> de Google Cloud (uno por empresa, se configura una sola vez; ver instrucciones al final del mensaje de la app).</p>
-        <div class="field" style="margin-top:12px;">
-          <label for="sGoogleClientId">Google Client ID</label>
-          <input type="text" id="sGoogleClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
+      <div id="googleAjustesSection" style="display:none;">
+        <div class="section-head" style="margin-top:18px;">
+          <h2>Cuenta de Google (envío real desde Gmail)</h2>
         </div>
-        <div id="googleSignedOutWrap">
-          <button type="button" class="btn-google" id="btnGoogleSignIn">
-            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.5-6.5C35.3 2.7 30 0.5 24 0.5 14.9 0.5 7.1 5.7 3.3 13.3l7.6 5.9C12.7 13.1 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.2-3.9 6.6-9.7 6.6-17.4z"/><path fill="#FBBC05" d="M10.9 19.2c-.5 1.5-.8 3.1-.8 4.8s.3 3.3.8 4.8l-7.6 5.9C1.6 31.3.5 27.8.5 24s1.1-7.3 2.8-10.7l7.6 5.9z"/><path fill="#34A853" d="M24 47.5c6 0 11.3-2 15-5.4l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.6-13.1-8.7l-7.6 5.9C7.1 42.3 14.9 47.5 24 47.5z"/></svg>
-            Iniciar sesión con Google
-          </button>
-        </div>
-        <div id="googleSignedInWrap" style="display:none;">
-          <div class="google-account">
-            <img class="google-avatar" id="googleAvatarImg" style="display:none;">
-            <div class="google-avatar placeholder" id="googleAvatarPlaceholder">G</div>
-            <div class="google-info">
-              <div class="g-name" id="googleNameLabel">—</div>
-              <div class="g-email" id="googleEmailLabel">—</div>
-            </div>
+        <div class="card">
+          <p class="small-note">Vincula tu cuenta de Google para que el inventario se envíe de verdad desde tu Gmail, y quede registrado qué cuenta lo mandó. Requiere un <b>Client ID</b> de Google Cloud (uno por empresa, se configura una sola vez; ver instrucciones al final del mensaje de la app).</p>
+          <div class="field" style="margin-top:12px;">
+            <label for="sGoogleClientId">Google Client ID</label>
+            <input type="text" id="sGoogleClientId" placeholder="xxxxxxxx.apps.googleusercontent.com">
           </div>
-          <button type="button" class="btn btn-outline btn-block" id="btnGoogleSignOut" style="margin-top:12px;">Cerrar sesión de Google</button>
+          <div id="googleSignedOutWrap">
+            <button type="button" class="btn-google" id="btnGoogleSignIn">
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.5l6.5-6.5C35.3 2.7 30 0.5 24 0.5 14.9 0.5 7.1 5.7 3.3 13.3l7.6 5.9C12.7 13.1 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.2-3.9 6.6-9.7 6.6-17.4z"/><path fill="#FBBC05" d="M10.9 19.2c-.5 1.5-.8 3.1-.8 4.8s.3 3.3.8 4.8l-7.6 5.9C1.6 31.3.5 27.8.5 24s1.1-7.3 2.8-10.7l7.6 5.9z"/><path fill="#34A853" d="M24 47.5c6 0 11.3-2 15-5.4l-7.3-5.7c-2 1.4-4.6 2.2-7.7 2.2-6.1 0-11.3-3.6-13.1-8.7l-7.6 5.9C7.1 42.3 14.9 47.5 24 47.5z"/></svg>
+              Iniciar sesión con Google
+            </button>
+          </div>
+          <div id="googleSignedInWrap" style="display:none;">
+            <div class="google-account">
+              <img class="google-avatar" id="googleAvatarImg" style="display:none;">
+              <div class="google-avatar placeholder" id="googleAvatarPlaceholder">G</div>
+              <div class="google-info">
+                <div class="g-name" id="googleNameLabel">—</div>
+                <div class="g-email" id="googleEmailLabel">—</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-block" id="btnGoogleSignOut" style="margin-top:12px;">Cerrar sesión de Google</button>
+          </div>
         </div>
       </div>
 
       <div class="section-head" style="margin-top:18px;">
-        <h2>Alternativa: EmailJS (opcional)</h2>
+        <h2>Envío automático (opcional)</h2>
       </div>
       <div class="card">
-        <p class="small-note">Si no quieres usar tu cuenta de Google, puedes rellenar estos datos de <a class="link-inline" href="https://www.emailjs.com" target="_blank" rel="noopener">EmailJS</a> (cuenta gratuita) como alternativa de envío silencioso. Si dejas todo vacío, o falla el envío, se ofrecerá compartir o abrir el correo manualmente.</p>
+        <p class="small-note">Si quieres que el inventario se envíe automáticamente en segundo plano (sin abrir tu app de correo), puedes rellenar estos datos de <a class="link-inline" href="https://www.emailjs.com" target="_blank" rel="noopener">EmailJS</a> (cuenta gratuita). Si dejas todo vacío, o falla el envío, se ofrecerá compartir el Excel o abrir el correo manualmente.</p>
         <div class="field" style="margin-top:12px;">
           <label for="sEjsService">Service ID</label>
           <input type="text" id="sEjsService" placeholder="service_xxxxxxx">
@@ -764,20 +766,62 @@ main{ flex:1; padding: 14px 14px calc(90px + var(--safe-bottom)); }
   <div class="toast" id="toast"></div>
 </div>
 <script>
-/* ============================================================
-   INVENTARIO DE EQUIPOS — lógica de la aplicación
-   Almacenamiento: localStorage (por dispositivo/navegador)
-   ============================================================ */
+/* ============================================================================
+   INVENTARIO DE EQUIPOS — lógica de la aplicación (Zener)
+   ============================================================================
+   QUÉ ES ESTE ARCHIVO
+   Una PWA (aplicación web instalable) de un solo archivo. Todo el HTML, el
+   CSS y el JavaScript viven aquí dentro; no hay proceso de compilación: se
+   edita este archivo tal cual y se vuelve a publicar (ver README.md).
+
+   CÓMO SE GUARDAN LOS DATOS
+   No hay servidor propio ni base de datos: cada equipo/dispositivo guarda su
+   propia copia en el almacenamiento local del navegador (localStorage). Por
+   eso el inventario de un móvil no se ve en otro — cada uno es independiente,
+   y el envío por correo es la forma de centralizarlos.
+
+   MAPA RÁPIDO DE SECCIONES (búscalas por el título entre líneas "----"):
+     - almacenamiento          leer/guardar en localStorage, fechas
+     - alta inicial obligatoria  pantalla "Antes de empezar" la primera vez
+     - Google Sign-In + Gmail  login e envío real de correo desde el Gmail
+                               de quien lo usa
+     - navegación              cambiar entre las pestañas Inventario/Añadir/
+                               Catálogo/Historial/Ajustes
+     - render: cabecera/lista  pintar en pantalla el inventario actual
+     - formulario               alta y edición de un equipo (incluida la foto)
+     - escáner QR               leer códigos con la cámara o desde una foto
+     - catálogo                 importar el Excel de códigos+descripciones
+     - ajustes                  datos del RRPP, credenciales opcionales
+     - envío del inventario     construir y mandar el correo (varias vías)
+     - historial                archivar un inventario y empezar uno nuevo
+
+   PUNTOS QUE MERECE LA PENA LEER ANTES DE TOCAR NADA:
+     - normalizarCodigo(): cómo se comparan los códigos de producto para que
+       dé igual si el Excel les quitó los ceros a la izquierda.
+     - onQRDetected(): cómo se extrae el código de producto del texto bruto
+       que lee la cámara (el formato real de las etiquetas, no es todo el QR).
+     - enviarInventario(): el orden en que se intenta enviar el correo
+       (Gmail del usuario → EmailJS → compartir/mailto) y por qué.
+     - construirExcelInventario(): por qué usa una librería distinta (ExcelJS)
+       a la que se usa para LEER el catálogo (SheetJS/XLSX).
+   ============================================================================ */
 (function(){
 "use strict";
 
+/* ---------------- claves de almacenamiento local ----------------
+   Cada una guarda un JSON distinto en localStorage. El sufijo "_v2"/"_v1"
+   es la versión del formato de datos: si algún día cambias la forma de los
+   objetos guardados de manera incompatible, sube el número para que los
+   dispositivos existentes no intenten leer datos con la forma antigua. */
 const STORE_KEYS = {
-  inventario: "inv_equipos_v2",
-  catalogo: "inv_catalogo_v2",
-  ajustes: "inv_ajustes_v2",
-  historial: "inv_historial_v1"
+  inventario: "inv_equipos_v2",   // el inventario "de trabajo" actual, sin enviar/finalizar
+  catalogo: "inv_catalogo_v2",    // catálogo código→descripción importado del Excel de SharePoint
+  ajustes: "inv_ajustes_v2",      // perfil del RRPP + credenciales opcionales (Google, EmailJS...)
+  historial: "inv_historial_v1"   // copias de inventarios ya finalizados (ver sección "historial")
 };
 
+/* Los cuatro estados posibles de un equipo, con su etiqueta visible y la
+   clase CSS que pinta el borde de color en cada fila (ver estilos .estado-*). */
 const ESTADOS = {
   bueno: { label: "Bueno", clase: "estado-bueno" },
   regular: { label: "Regular", clase: "estado-regular" },
@@ -785,40 +829,78 @@ const ESTADOS = {
   baja: { label: "Baja", clase: "estado-baja" }
 };
 
-const PREFIJO_QR_LONGITUD = 4;   // caracteres iniciales a omitir (normalmente ceros de relleno)
-const LONGITUD_CODIGO_QR = 6;    // dígitos del código de producto, justo después del prefijo
+/* Formato real de las etiquetas QR de los equipos: el texto que lee la
+   cámara no es directamente el código de producto. Trae 4 caracteres de
+   relleno al principio (normalmente ceros) y, justo después, 6 dígitos que
+   sí son el código real; el resto del texto (más largo) son datos internos
+   del fabricante de la etiqueta que no usamos. Ejemplo real:
+     00004125372400000000E8B2FE06C6BC
+     ↑↑↑↑------            <- 4 caracteres de relleno, se ignoran
+         ↑↑↑↑↑↑             <- 6 dígitos: el código de producto (aquí "412537")
+               resto...    <- se ignora
+   Si el formato de las etiquetas cambiara, solo hay que tocar estas dos
+   constantes (ver su uso en onQRDetected). */
+const PREFIJO_QR_LONGITUD = 4;
+const LONGITUD_CODIGO_QR = 6;
 
-/* ---------------- almacenamiento ---------------- */
+/* ---------------- almacenamiento: helpers genéricos de leer/guardar JSON ---------------- */
+
+// Lee una clave de localStorage y la parsea como JSON. Si no existe, está
+// corrupta, o el navegador la bloquea (modo incógnito muy restrictivo,
+// almacenamiento lleno...), devuelve "fallback" en vez de romper la app.
 function loadJSON(key, fallback){
   try{
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   }catch(e){ console.warn("Error leyendo", key, e); return fallback; }
 }
+// Guarda un valor como JSON en localStorage. Si falla (por ejemplo,
+// almacenamiento lleno), avisa al usuario con un toast en vez de fallar en
+// silencio y perder datos sin que nadie se entere.
 function saveJSON(key, value){
   try{ localStorage.setItem(key, JSON.stringify(value)); return true; }
   catch(e){ console.warn("Error guardando", key, e); showToast("No se pudo guardar (almacenamiento lleno)"); return false; }
 }
 
+// Fecha de hoy en formato ISO (AAAA-MM-DD), la que se usa internamente para
+// guardar fechas. Sirve de valor por defecto para "fecha del inventario".
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 
+/* Los campos de fecha del formulario se muestran como tres cuadros sueltos
+   (Día / Mes / Año) en vez de un <input type="date"> nativo, a propósito:
+   el selector nativo cambia de formato según el idioma del móvil (algunos
+   muestran mes/día/año), lo que confundía a los usuarios. Con tres campos
+   de texto el orden es siempre el mismo, pero hay que convertir a mano
+   entre esa representación visual y el ISO que se guarda internamente. */
+
+// Convierte una fecha ISO (AAAA-MM-DD) en sus tres partes por separado,
+// para rellenar los tres campos de texto Día/Mes/Año.
 function isoToDMY(iso){
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");
   if(!m) return { dia:"", mes:"", anio:"" };
   return { dia: m[3], mes: m[2], anio: m[1] };
 }
+// Convierte los tres campos de texto Día/Mes/Año de vuelta a ISO, validando
+// que sean números dentro de un rango razonable. Devuelve null si algo no
+// cuadra (por ejemplo, "32" de día), para que quien la llame pueda usar
+// hoy como valor de reserva en vez de guardar una fecha inválida.
 function dmyToISO(dia, mes, anio){
   const d = parseInt(dia,10), m = parseInt(mes,10), y = parseInt(anio,10);
   if(!Number.isFinite(d) || !Number.isFinite(m) || !Number.isFinite(y)) return null;
   if(d<1 || d>31 || m<1 || m>12 || y<2000 || y>2100) return null;
   return `${String(y).padStart(4,"0")}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 }
+// Rellena los tres <input> (id="{prefijo}Dia/Mes/Anio") a partir de una
+// fecha ISO. "prefijo" es "obFecha" en el formulario inicial o "sFecha" en
+// Ajustes — así una misma función sirve para los dos sitios.
 function rellenarCamposFecha(prefijo, iso){
   const dmy = isoToDMY(iso || hoyISO());
   document.getElementById(prefijo+"Dia").value = dmy.dia;
   document.getElementById(prefijo+"Mes").value = dmy.mes;
   document.getElementById(prefijo+"Anio").value = dmy.anio;
 }
+// La operación inversa: lee los tres <input> y devuelve la fecha en ISO
+// (o null si no es válida), para guardarla en "ajustes".
 function leerCamposFecha(prefijo){
   const dia = document.getElementById(prefijo+"Dia").value.trim();
   const mes = document.getElementById(prefijo+"Mes").value.trim();
@@ -826,9 +908,22 @@ function leerCamposFecha(prefijo){
   return dmyToISO(dia, mes, anio);
 }
 
+/* ---------------- estado en memoria (se carga una vez al arrancar) ----------------
+   Estas cuatro variables son la "fuente de la verdad" mientras la app está
+   abierta: todo el resto del código lee y modifica estas variables, y luego
+   llama a saveJSON(...) para persistir el cambio en localStorage. Si alguna
+   vez ves un dato que "no se actualiza", casi seguro es que se modificó la
+   variable pero se olvidó llamar a saveJSON, o falta volver a pintar la
+   pantalla (las funciones render*()). */
 let inventario = loadJSON(STORE_KEYS.inventario, []);
 let historial = loadJSON(STORE_KEYS.historial, []);
 let catalogo = loadJSON(STORE_KEYS.catalogo, { items: [], actualizado: null });
+
+// El Client ID de Google de aquí abajo es el de la empresa (Zener), no de
+// una persona — es información pública, pensada para ir en el código (ver
+// README.md, sección de Google Sign-In). Es el único campo con un valor por
+// defecto real: así, en un dispositivo nuevo, el botón de "Iniciar sesión
+// con Google" ya funciona sin que nadie tenga que rellenar nada a mano.
 let ajustes = loadJSON(STORE_KEYS.ajustes, {
   nombre:"", empresa:"", provincia:"", clave:"", fechaInventario: hoyISO(),
   correoRemitente:"", emailDestino:"",
@@ -837,24 +932,39 @@ let ajustes = loadJSON(STORE_KEYS.ajustes, {
   spUrl:"", ultimoEnvio:null, configurado:false
 });
 
+// Genera un identificador único y corto para cada equipo nuevo (no es un
+// UUID de verdad, pero para esta app —sin servidor, sin concurrencia entre
+// dispositivos— con la hora actual + algo de aleatoriedad es más que
+// suficiente para que nunca se repita).
 function uid(){ return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// Escapa texto antes de meterlo en HTML (innerHTML) para que, por ejemplo,
+// una descripción de equipo que contenga "<" o "&" no rompa la página ni
+// permita inyectar HTML/JS desde un campo de texto normal.
 function escapeHTML(s){
   return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+// Fecha + hora completas en español, para marcas de tiempo con detalle
+// ("Registrado", "Último envío"...). Ej: "17 sept 2026 12:45".
 function formatFecha(iso){
   try{
     const d = new Date(iso);
     return d.toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}) + " " + d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
   }catch(e){ return iso; }
 }
+// Solo la fecha, sin hora, para la "fecha del inventario" (que es un día,
+// no un instante concreto). Ej: "17 sept 2026".
 function formatFechaCorta(iso){
   if(!iso) return "—";
   try{ return new Date(iso+"T00:00:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"}); }
   catch(e){ return iso; }
 }
 
-/* ---------------- toast ---------------- */
+/* ---------------- toast (aviso flotante abajo de la pantalla) ---------------- */
 let toastTimer=null;
+// Muestra un mensaje breve abajo de la pantalla durante "ms" milisegundos.
+// Se usa en toda la app para confirmar acciones ("Equipo añadido") o avisar
+// de errores ("No se pudo generar el Excel") sin interrumpir con un popup.
 function showToast(msg, ms=2600){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -863,7 +973,17 @@ function showToast(msg, ms=2600){
   toastTimer = setTimeout(()=>t.classList.remove("show"), ms);
 }
 
-/* ---------------- alta inicial obligatoria ---------------- */
+/* ---------------- alta inicial obligatoria ----------------
+   La primera vez que se abre la app en un dispositivo (ajustes.configurado
+   es false), se muestra una pantalla a pantalla completa pidiendo los datos
+   mínimos del RRPP antes de dejar usar nada más. Estos mismos campos se
+   pueden editar después desde Ajustes — checkOnboarding() y el guardado de
+   Ajustes comparten casi la misma lógica, solo cambian los prefijos de los
+   <input> ("ob..." aquí, "s..." en Ajustes). */
+
+// Se llama al arrancar la app y también después de importar una copia de
+// seguridad: rellena la pantalla de bienvenida con lo que ya hubiera
+// guardado, y decide si hay que mostrarla (overlay) o no.
 function checkOnboarding(){
   const overlay = document.getElementById("overlayOnboarding");
   document.getElementById("obNombre").value = ajustes.nombre || "";
@@ -873,13 +993,22 @@ function checkOnboarding(){
   rellenarCamposFecha("obFecha", ajustes.fechaInventario);
   document.getElementById("obCorreoRemitente").value = ajustes.correoRemitente || "";
   document.getElementById("obEmailDestino").value = ajustes.emailDestino || "";
-  document.getElementById("obGoogleWrap").style.display = ajustes.googleClientId ? "block" : "none";
+  // El botón de Google solo se muestra si ya hay un Client ID configurado
+  // (que por defecto siempre lo hay, ver más arriba) — así en dispositivos
+  // muy antiguos sin ese dato no se ofrece un botón que fallaría.
+  // Sección de Google desactivada a petición del cliente: se deja el
+  // código intacto por si se quiere reactivar más adelante, pero de
+  // momento se oculta siempre, sin importar si hay Client ID o no.
+  document.getElementById("obGoogleWrap").style.display = "none";
   document.getElementById("obGoogleStatus").textContent = (ajustes.google && ajustes.google.email)
     ? ("Vinculado como " + ajustes.google.email)
     : "Así el inventario se enviará realmente desde tu Gmail. Puedes hacerlo ahora o más tarde desde Ajustes.";
   if(ajustes.configurado){ overlay.classList.remove("active"); return; }
   overlay.classList.add("active");
 }
+// Solo nombre, clave y correo de destino son obligatorios para poder
+// empezar a usar la app; el resto (empresa, provincia, correo remitente,
+// Google) se puede completar después sin bloquear nada.
 document.getElementById("btnGuardarOnboarding").addEventListener("click", ()=>{
   const nombre = document.getElementById("obNombre").value.trim();
   const clave = document.getElementById("obClave").value.trim();
@@ -903,25 +1032,54 @@ document.getElementById("btnGuardarOnboarding").addEventListener("click", ()=>{
   showToast("Datos guardados. ¡Ya puedes registrar equipos!");
 });
 
-/* ---------------- Google Sign-In + envío real por Gmail ---------------- */
-let googleTokenClient = null;
-let googleAccessToken = null;
-let googleAccessTokenExpiry = 0;
+/* ============================================================================
+   GOOGLE SIGN-IN + ENVÍO REAL DESDE GMAIL
+   ============================================================================
+   Idea general: el usuario inicia sesión con su propia cuenta de Google
+   (botón "Iniciar sesión con Google"), y a partir de ahí la app puede pedirle
+   a Google un "token" temporal que le da permiso para mandar UN correo desde
+   esa cuenta a través de la API oficial de Gmail — sin que la contraseña de
+   nadie pase nunca por nuestro código ni por ningún servidor intermedio.
 
+   Requiere que exista un "Client ID" de OAuth creado en Google Cloud Console
+   (ajustes.googleClientId, ver README.md) con la URL exacta donde esté
+   publicada la app añadida como "origen autorizado" — si algún día cambias
+   de dominio, hay que añadir la URL nueva ahí o el login dejará de funcionar
+   con un error de "origen no autorizado".
+
+   El token que da Google caduca (normalmente 1 hora). getValidGoogleToken()
+   se encarga de pedir uno nuevo en silencio cuando hace falta, y solo pide
+   confirmación visible al usuario si el intento silencioso falla. */
+let googleTokenClient = null;
+let googleAccessToken = null;      // el token en sí, solo en memoria (nunca se guarda en localStorage: es sensible y caduca)
+let googleAccessTokenExpiry = 0;   // marca de tiempo (ms) en la que caduca googleAccessToken
+
+// Crea (o reutiliza) el "cliente" de la librería de Google que sabe pedir
+// tokens para el Client ID configurado. Si cambia el Client ID en Ajustes,
+// se crea uno nuevo automáticamente (por eso se guarda __clientId y se
+// compara). Devuelve null si la librería de Google aún no cargó o no hay
+// Client ID — quien la llame debe comprobar ese null.
 function ensureGoogleTokenClient(){
   if(!window.google || !window.google.accounts || !window.google.accounts.oauth2) return null;
   if(!ajustes.googleClientId) return null;
   if(!googleTokenClient || googleTokenClient.__clientId !== ajustes.googleClientId){
     googleTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: ajustes.googleClientId,
+      // Tres permisos: identificar quién es (openid/email/profile) y poder
+      // enviar correo en su nombre (gmail.send). No pedimos nada más.
       scope: "openid email profile https://www.googleapis.com/auth/gmail.send",
-      callback: ()=>{}
+      callback: ()=>{}   // se sustituye en cada llamada real, ver requestGoogleToken
     });
     googleTokenClient.__clientId = ajustes.googleClientId;
   }
   return googleTokenClient;
 }
 
+// Pide un token nuevo a Google. Si "interactive" es true, Google puede
+// mostrar una ventana/selector de cuenta al usuario; si es false, lo intenta
+// en silencio (sin ventanas) y falla si no puede (por ejemplo, si nunca
+// inició sesión antes). La API de Google es "de callback", así que aquí se
+// envuelve en una Promise para poder usar await donde se necesite.
 function requestGoogleToken(interactive){
   return new Promise((resolve, reject)=>{
     const client = ensureGoogleTokenClient();
@@ -938,6 +1096,13 @@ function requestGoogleToken(interactive){
   });
 }
 
+// Punto de entrada que usa el resto de la app para conseguir un token
+// válido: si el que ya se tenía en memoria sigue vigente (con 30s de
+// margen), lo reutiliza sin llamar a Google. Si no, intenta renovarlo en
+// silencio; solo si eso falla Y se permite ("interactiveIfNeeded"), pide
+// confirmación visible al usuario. Así, en el envío normal del día a día,
+// casi nunca hace falta que el usuario vuelva a tocar nada tras el primer
+// login.
 async function getValidGoogleToken(interactiveIfNeeded){
   if(googleAccessToken && Date.now() < googleAccessTokenExpiry - 30000) return googleAccessToken;
   try{
@@ -948,6 +1113,10 @@ async function getValidGoogleToken(interactiveIfNeeded){
   }
 }
 
+// Pinta en Ajustes el estado de la cuenta de Google: o el botón de "Iniciar
+// sesión", o (si ya hay una cuenta vinculada) el avatar/nombre/correo y el
+// botón de "Cerrar sesión". Se apoya en la foto de perfil si Google la dio;
+// si no, muestra un círculo con la inicial del nombre.
 function renderGoogleAccountUI(){
   const signedOut = document.getElementById("googleSignedOutWrap");
   const signedIn = document.getElementById("googleSignedInWrap");
@@ -970,6 +1139,12 @@ function renderGoogleAccountUI(){
   }
 }
 
+// Se ejecuta al pulsar "Iniciar sesión con Google" (tanto en Ajustes como
+// en la pantalla inicial). Pide un token de forma interactiva (mostrando el
+// selector de cuenta de Google), y con ese token consulta el endpoint
+// público "userinfo" de Google para saber el nombre/correo/foto de la
+// persona que acaba de iniciar sesión. Ese correo se usa también como
+// "correo remitente" por defecto.
 async function iniciarSesionGoogle(){
   const clientIdCampo = document.getElementById("sGoogleClientId");
   if(clientIdCampo && clientIdCampo.value.trim()) ajustes.googleClientId = clientIdCampo.value.trim();
@@ -1010,10 +1185,17 @@ document.getElementById("btnGoogleSignOut").addEventListener("click", ()=>{
   showToast("Sesión de Google cerrada");
 });
 
+// La API de Gmail exige que el correo completo (raw) vaya en "base64url"
+// (variante de base64 segura para URLs: cambia "+"/"/" por "-"/"_" y quita
+// el relleno "="). btoa() por sí sola no soporta caracteres Unicode
+// directamente, por eso el paso previo de encodeURIComponent/unescape.
 function toBase64Url(str){
   return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 
+// Convierte un base64 "normal" (el que devuelve, por ejemplo, ExcelJS) en un
+// Blob descargable/compartible. Se usa tanto para el botón de descarga
+// directa como para adjuntar el Excel al compartir por Web Share API.
 function base64ToBlob(base64, mime){
   const bytes = atob(base64);
   const arr = new Uint8Array(bytes.length);
@@ -1021,6 +1203,12 @@ function base64ToBlob(base64, mime){
   return new Blob([arr], { type: mime });
 }
 
+// Construye un correo electrónico "a mano" en formato MIME (el formato
+// estándar de un email de verdad, con cabeceras y partes separadas por un
+// "boundary"), incluyendo el cuerpo en HTML y los adjuntos que se le pasen
+// codificados en base64. Es justo el formato que exige la API de Gmail en
+// su campo "raw" (ver intentarEnvioGmail). El asunto se codifica aparte en
+// base64 porque las cabeceras de correo no admiten tildes/Ñ en crudo.
 function buildMimeMessage({ from, to, subject, htmlBody, attachments }){
   const boundary = "mixInv" + Date.now();
   const asuntoCodificado = "=?UTF-8?B?" + btoa(unescape(encodeURIComponent(subject))) + "?=";
@@ -1038,6 +1226,12 @@ function buildMimeMessage({ from, to, subject, htmlBody, attachments }){
   return msg;
 }
 
+// El envío "de verdad": construye el Excel del inventario (con el QR
+// incrustado en cada fila que lo tenga) más hasta 10 fotos de equipos como
+// adjuntos, arma el correo en MIME, y lo manda a través de la API oficial
+// de Gmail usando el token de la sesión de Google activa. Si no hay sesión
+// iniciada, lanza un error enseguida para que quien la llame (ver
+// enviarInventario) pase directamente a la siguiente alternativa.
 async function intentarEnvioGmail(asunto, htmlBody){
   if(!ajustes.google || !ajustes.google.email) throw new Error("No hay sesión de Google vinculada");
   const token = await getValidGoogleToken(true);
@@ -1067,7 +1261,11 @@ async function intentarEnvioGmail(asunto, htmlBody){
   }
 }
 
-/* ---------------- navegación ---------------- */
+/* ---------------- navegación entre pestañas ----------------
+   La app no tiene "páginas" de verdad: las 5 vistas viven todas en el
+   mismo HTML (cada una en su propia sección "view-...") y goTo() simplemente
+   les añade/quita la clase CSS "active" para mostrar solo la que toca.
+   No hay recarga ni cambio de URL — por eso es instantáneo. */
 const views = ["inventario","anadir","catalogo","historial","ajustes"];
 function goTo(view){
   views.forEach(v=>{
@@ -1076,21 +1274,29 @@ function goTo(view){
   document.querySelectorAll(".nav-btn").forEach(btn=>{
     btn.setAttribute("aria-current", btn.dataset.view===view ? "true":"false");
   });
+  // El botón "+" flotante solo tiene sentido en la vista de Inventario.
   document.getElementById("fabAdd").style.display = (view==="inventario") ? "flex" : "none";
   window.scrollTo(0,0);
 }
 document.querySelectorAll(".nav-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>{
+    // El botón "Añadir" de la barra inferior no navega a una vista vacía:
+    // abre directamente el formulario en modo "equipo nuevo" (openForm(null)).
     if(btn.dataset.view==="anadir") openForm(null);
     else{
       goTo(btn.dataset.view);
+      // Historial no se repinta solo al cambiar datos (a diferencia del
+      // inventario), así que se refresca cada vez que se entra a esa pestaña.
       if(btn.dataset.view==="historial") renderHistorial();
     }
   });
 });
 document.getElementById("fabAdd").addEventListener("click", ()=>openForm(null));
 
-/* ---------------- render: cabecera ---------------- */
+/* ---------------- render: cabecera (la franja verde de arriba) ---------------- */
+// Se llama cada vez que cambia algo que afecta a lo que se ve en la
+// cabecera: el número de equipos, el nombre/provincia del RRPP, o la fecha
+// del último envío.
 function renderHeader(){
   const totalUnidades = inventario.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
   document.getElementById("countPill").textContent = inventario.length + (inventario.length===1 ? " equipo" : " equipos") + (totalUnidades!==inventario.length ? " · " + totalUnidades + " uds" : "");
@@ -1127,6 +1333,10 @@ function renderInventario(){
   renderHeader();
 }
 
+// El HTML de una sola fila de la lista de inventario (foto/placeholder,
+// descripción, marca/modelo, y las tres "píldoras": código, cantidad, y
+// "QR" si tiene uno guardado). El color del borde izquierdo lo pone la
+// clase CSS "est.clase" (ver ESTADOS), no algo calculado aquí.
 function rowHTML(eq){
   const est = ESTADOS[eq.estado] || ESTADOS.bueno;
   const thumb = eq.foto
@@ -1150,8 +1360,11 @@ function rowHTML(eq){
 
 document.getElementById("searchInput").addEventListener("input", renderInventario);
 
-/* ---------------- detalle de equipo ---------------- */
-let detalleActualId = null;
+/* ---------------- detalle de equipo (ficha al tocar una fila) ---------------- */
+let detalleActualId = null;   // id del equipo cuya ficha está abierta ahora mismo (para Editar/Eliminar)
+// Pinta y abre la hoja de detalle de un equipo: foto grande, todos sus
+// campos, y si tiene QR guardado, el texto completo en un bloque aparte
+// (útil para copiarlo o comprobarlo a simple vista).
 function openDetalle(id){
   const eq = inventario.find(e=>e.id===id);
   if(!eq) return;
@@ -1188,12 +1401,26 @@ document.getElementById("btnBorrarDesdeDetalle").addEventListener("click", ()=>{
   showToast("Equipo eliminado");
 });
 
-/* ---------------- formulario: añadir / editar ---------------- */
-let formEditId = null;
-let formFotoData = null;
-let formEstado = "bueno";
-let formQrCompleto = null;
+/* ============================================================================
+   FORMULARIO: AÑADIR / EDITAR EQUIPO
+   ============================================================================
+   Una única vista (view-anadir) sirve tanto para dar de alta un equipo
+   nuevo como para editar uno existente — lo que cambia es si openForm()
+   recibe un id o no. Mientras el formulario está abierto, sus datos NO
+   viven en el objeto del equipo directamente: se guardan en estas
+   variables sueltas (formEditId, formFotoData, formEstado,
+   formQrCompleto) para los campos que no son un <input> simple (la foto en
+   base64, el estado seleccionado, el texto del QR), y solo se juntan todos
+   al pulsar "Guardar" (ver el listener de btnGuardarEquipo, más abajo). */
+let formEditId = null;       // id del equipo que se está editando, o null si es uno nuevo
+let formFotoData = null;     // foto en base64 (dataURL) ya redimensionada, o null
+let formEstado = "bueno";    // estado seleccionado en los chips (Bueno/Regular/En reparación/Baja)
+let formQrCompleto = null;   // texto completo del QR si el equipo se dio de alta escaneando uno
 
+// Abre el formulario. Si "id" es un id real, precarga los datos de ese
+// equipo (modo edición); si es null, lo deja todo vacío con los valores
+// por defecto (modo alta). El buscador de catálogo solo se muestra si ya
+// hay algo importado (si no, no tendría nada que ofrecer).
 function openForm(id){
   formEditId = id;
   const eq = id ? inventario.find(e=>e.id===id) : null;
@@ -1220,6 +1447,9 @@ function openForm(id){
 
 document.getElementById("btnCancelarForm").addEventListener("click", ()=>goTo("inventario"));
 
+// Los "chips" de estado (Bueno/Regular/...) no son un <select>: son botones
+// que se pintan como activos/inactivos según formEstado, para que se vean
+// todas las opciones de un vistazo y el color asociado a cada estado.
 document.querySelectorAll(".status-chip").forEach(chip=>{
   chip.addEventListener("click", ()=>{ formEstado = chip.dataset.value; updateStatusChips(); });
 });
@@ -1229,6 +1459,8 @@ function updateStatusChips(){
   });
 }
 
+// Muestra/oculta la insignia "QR completo guardado" con su botón de
+// quitar, según si formQrCompleto tiene algo o no.
 function updateQrFlag(){
   document.getElementById("qrFlagWrap").style.display = formQrCompleto ? "block" : "none";
 }
@@ -1238,6 +1470,8 @@ document.getElementById("btnQuitarQR").addEventListener("click", ()=>{
   showToast("QR desvinculado de este equipo");
 });
 
+// Pinta la miniatura de la foto (o el icono de placeholder si no hay
+// ninguna) y muestra/oculta el botón de "Quitar" según corresponda.
 function updatePhotoPreview(){
   const prev = document.getElementById("photoPreview");
   const quitar = document.getElementById("btnQuitarFoto");
@@ -1251,6 +1485,11 @@ function updatePhotoPreview(){
 }
 document.getElementById("btnTomarFoto").addEventListener("click", ()=>document.getElementById("fFoto").click());
 document.getElementById("btnQuitarFoto").addEventListener("click", ()=>{ formFotoData=null; updatePhotoPreview(); });
+// El <input type="file" capture="environment"> abre la cámara del móvil
+// directamente (o la galería, según elija el usuario). En cuanto se
+// selecciona/hace una foto, se redimensiona antes de guardarla (ver
+// resizeImageToDataURL) para no llenar el almacenamiento del móvil con
+// fotos a resolución completa de la cámara.
 document.getElementById("fFoto").addEventListener("change", async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
@@ -1264,6 +1503,12 @@ document.getElementById("fFoto").addEventListener("change", async (e)=>{
   e.target.value = "";
 });
 
+// Redimensiona una imagen (el archivo que sale del selector de fotos) a un
+// máximo de "maxDim" píxeles en su lado más largo, y la comprime a JPEG
+// con la calidad indicada, devolviendo el resultado como dataURL (texto
+// base64 listo para guardar en localStorage o meter en un <img src="...">).
+// Se hace pasando la imagen por un <canvas> invisible: es la única forma
+// de recomprimir una imagen en el navegador sin subirla a ningún sitio.
 function resizeImageToDataURL(file, maxDim, quality){
   return new Promise((resolve,reject)=>{
     const img = new Image();
@@ -1285,6 +1530,11 @@ function resizeImageToDataURL(file, maxDim, quality){
   });
 }
 
+// Al pulsar "Guardar equipo": valida que haya al menos descripción, y si
+// hay código comprueba que no esté ya usado por OTRA línea del inventario
+// (e.id!==formEditId excluye la propia línea que se está editando, para no
+// marcarla como "duplicada de sí misma"). Con todo correcto, arma el
+// objeto del equipo y lo añade o reemplaza según sea alta o edición.
 document.getElementById("btnGuardarEquipo").addEventListener("click", ()=>{
   const descripcion = document.getElementById("fDescripcion").value.trim();
   if(!descripcion){ showToast("Escribe al menos la descripción del equipo"); return; }
@@ -1310,6 +1560,8 @@ document.getElementById("btnGuardarEquipo").addEventListener("click", ()=>{
     estado: formEstado,
     foto: formFotoData,
     qrCompleto: formQrCompleto,
+    // Si es una edición, se conserva la fecha de alta original (no se
+    // pisa); si es un equipo nuevo, se pone la fecha/hora de ahora mismo.
     fechaAlta: formEditId ? ((inventario.find(e=>e.id===formEditId) || {}).fechaAlta || new Date().toISOString()) : new Date().toISOString(),
     fechaMod: Date.now()
   };
@@ -1334,7 +1586,12 @@ document.getElementById("btnEliminarEquipo").addEventListener("click", ()=>{
   renderInventario();
 });
 
-/* --------- autocompletar desde catálogo al añadir a mano --------- */
+/* --------- autocompletar desde catálogo al añadir a mano ---------
+   Además de escanear un QR, se puede buscar un código/descripción a mano
+   en el catálogo ya importado (útil si no hay QR a la vista, o si falla la
+   cámara). Es una búsqueda simple "contiene" (no hace falta escribir el
+   código exacto), y al elegir un resultado se rellenan los mismos campos
+   que rellenaría un QR reconocido. */
 document.getElementById("catalogPick").addEventListener("input", (e)=>{
   const term = e.target.value.trim().toLowerCase();
   const box = document.getElementById("catalogSuggestions");
@@ -1362,11 +1619,28 @@ document.getElementById("catalogPick").addEventListener("input", (e)=>{
   });
 });
 
-/* ---------------- escáner QR ---------------- */
-let scanStream = null, scanRAF = null;
+/* ============================================================================
+   ESCÁNER QR
+   ============================================================================
+   Dos formas de leer un QR, que acaban en la misma función onQRDetected():
+     1) Cámara en directo (startScan): pide permiso de cámara, muestra el
+        vídeo a pantalla completa, y en cada fotograma intenta decodificar
+        un QR con jsQR hasta que encuentra uno.
+     2) Foto (decodificarQRDesdeArchivo): el usuario hace/elige una foto y se
+        decodifica esa imagen fija, sin cámara en directo. Es la alternativa
+        que casi siempre funciona cuando la cámara en directo falla (por
+        permisos, por no ser HTTPS, o por restricciones del navegador). */
+let scanStream = null, scanRAF = null;   // el "stream" de vídeo de la cámara y el id del requestAnimationFrame en marcha
 document.getElementById("btnScanQR").addEventListener("click", startScan);
 document.getElementById("btnCerrarScan").addEventListener("click", stopScan);
 
+// Abre la cámara y empieza a buscar un QR en cada fotograma. Antes de
+// intentarlo comprueba dos cosas que, si fallan, hacen que ni siquiera
+// tenga sentido pedir permiso de cámara: que la página se sirva por HTTPS
+// (los navegadores bloquean la cámara en HTTP) y que el navegador tenga la
+// API de cámara disponible. Si el permiso o la cámara fallan más adelante,
+// intenta dar un mensaje concreto según el tipo de error en vez de un
+// genérico "no funciona", para que el usuario sepa qué hacer.
 async function startScan(){
   const overlay = document.getElementById("scanOverlay");
   const video = document.getElementById("scanVideo");
@@ -1384,6 +1658,10 @@ async function startScan(){
     return;
   }
 
+  // Primero se intenta pedir la cámara trasera (más práctica para escanear
+  // etiquetas); si el dispositivo no tiene ("ideal" no obliga, pero algunos
+  // navegadores/dispositivos aún así fallan), se reintenta con cualquier
+  // cámara disponible en vez de rendirse directamente.
   const intentosCamara = [
     { video: { facingMode: { ideal: "environment" } } },
     { video: true }
@@ -1416,6 +1694,13 @@ async function startScan(){
     await video.play();
     const canvas = document.getElementById("scanCanvas");
     const ctx = canvas.getContext("2d", { willReadFrequently:true });
+    // Bucle de lectura: en cada fotograma disponible, se copia la imagen
+    // del vídeo a un <canvas> invisible (jsQR necesita los píxeles en
+    // crudo, no puede leer directamente un <video>), y se le pasa a jsQR.
+    // Si no encuentra nada, se programa el siguiente intento con
+    // requestAnimationFrame (sincronizado con el refresco de pantalla, no
+    // gasta más CPU de la necesaria). En cuanto encuentra un código, para
+    // el bucle (no hay "return" a un tick más) y pasa a onQRDetected.
     const tick = ()=>{
       if(!scanStream) return;
       if(video.readyState === video.HAVE_ENOUGH_DATA){
@@ -1434,12 +1719,23 @@ async function startScan(){
     stopScan();
   }
 }
+// Cierra la vista de escaneo y libera la cámara: cancela el bucle de
+// lectura y detiene el "stream" de vídeo (¡importante! si no se detienen
+// las "tracks", el navegador se cree que la cámara sigue en uso y puede
+// dejar el indicador luminoso de cámara encendido, o agotar la batería).
 function stopScan(){
   document.getElementById("scanOverlay").classList.remove("active");
   if(scanRAF) cancelAnimationFrame(scanRAF);
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
 }
 
+// La alternativa a la cámara en directo: recibe un archivo de imagen (foto
+// tomada o elegida de la galería), lo dibuja en un <canvas> igual que se
+// haría con un fotograma de vídeo, y le pasa esos píxeles a jsQR una sola
+// vez. Se usa cuando la cámara en directo no está disponible o falla (ver
+// el botón "Subir foto del QR"), y suele funcionar en más navegadores
+// porque no depende de getUserMedia ni de peticiones de permiso en tiempo
+// real, solo de un simple selector de archivo.
 function decodificarQRDesdeArchivo(file){
   return new Promise((resolve, reject)=>{
     const img = new Image();
@@ -1478,6 +1774,20 @@ document.getElementById("fotoQRInput").addEventListener("change", async (e)=>{
   }
 });
 
+// Se llama tanto desde la cámara en directo (startScan) como desde "Subir
+// foto del QR" (decodificarQRDesdeArchivo), con el texto bruto que haya
+// leído jsQR. Hace tres cosas, en este orden:
+//   1) Extrae el código de producto del texto bruto (ver la explicación de
+//      PREFIJO_QR_LONGITUD/LONGITUD_CODIGO_QR al principio del archivo).
+//   2) Comprueba que ese código no esté ya en el inventario ACTUAL (un QR
+//      es el identificador de una unidad física: no debería registrarse
+//      dos veces en la misma ronda de inventario). Si ya existe, en vez de
+//      crear una línea duplicada, abre esa misma línea para editarla.
+//   3) Si es nuevo, abre el formulario en blanco, rellena el código y
+//      busca ese código en el catálogo importado para autocompletar la
+//      descripción/marca/modelo — si el catálogo no tiene ese código (o no
+//      se ha importado ningún catálogo todavía), avisa mostrando igualmente
+//      el código, para que se complete el resto a mano.
 function onQRDetected(text){
   document.getElementById("scanHint").textContent = "Código leído";
   if(navigator.vibrate) navigator.vibrate(60);
@@ -1490,6 +1800,9 @@ function onQRDetected(text){
     return;
   }
 
+  // ¿Ese código ya está en el inventario que se está montando ahora mismo?
+  // normalizarCodigo() ignora ceros a la izquierda al comparar (ver su
+  // definición más abajo) para que dé igual cómo esté escrito cada lado.
   const existente = inventario.find(e => normalizarCodigo(e.codigo) === normalizarCodigo(codigo));
   if(existente){
     showToast(`Ese QR (código ${codigo}) ya está registrado en este inventario como "${existente.descripcion || "sin descripción"}". Un QR es un identificador único: no se puede volver a registrar en el mismo inventario. Se abre para que lo edites.`, 5500);
@@ -1499,6 +1812,9 @@ function onQRDetected(text){
 
   openForm(null);
   document.getElementById("fCodigo").value = codigo;
+  // Se guarda el texto COMPLETO del QR (sin recortar), no solo el código:
+  // así, al generar el Excel más adelante, se puede volver a convertir ese
+  // texto íntegro en una imagen de QR escaneable (ver construirExcelInventario).
   formQrCompleto = raw;
   updateQrFlag();
 
@@ -1515,7 +1831,18 @@ function onQRDetected(text){
   }
 }
 
-/* ---------------- catálogo (SharePoint) ---------------- */
+/* ============================================================================
+   CATÁLOGO (código → descripción, importado desde el Excel de SharePoint)
+   ============================================================================
+   El catálogo NO se descarga solo: por las restricciones de seguridad de
+   los navegadores (CORS), la app no puede leer directamente un archivo
+   alojado en SharePoint. Por eso el proceso es en dos pasos manuales:
+     1) Se abre el enlace de SharePoint en una pestaña nueva para que el
+        propio usuario descargue el Excel a su móvil/ordenador.
+     2) Se importa ese archivo ya descargado con un simple selector de
+        archivo (<input type="file">), y aquí sí se puede leer su
+        contenido con la librería XLSX (SheetJS) sin ningún problema de
+        CORS, porque es un archivo local, no una petición de red. */
 function renderCatalogo(){
   document.getElementById("spUrl").value = ajustes.spUrl || "";
   const status = document.getElementById("catalogStatus");
@@ -1565,10 +1892,16 @@ document.getElementById("spFile").addEventListener("change", (e)=>{
   e.target.value = "";
 });
 
+// Compara dos códigos de producto "a prueba de ceros a la izquierda": si
+// alguno de los dos lados es puramente numérico, se le quitan los ceros
+// iniciales antes de comparar. Es necesaria porque Excel suele guardar
+// columnas de código como NÚMERO en vez de texto, y al hacerlo pierde
+// cualquier cero a la izquierda (p. ej. "00503323" se convierte en el
+// número 503323); como el QR sí trae siempre el código completo con sus
+// ceros, sin esto nunca habría coincidencia con el catálogo. Se usa en las
+// tres comparaciones de código de toda la app (buscar en catálogo,
+// detectar duplicados al escanear, detectar duplicados al guardar a mano).
 function normalizarCodigo(c){
-  // Compara códigos ignorando ceros a la izquierda: así da igual que el QR
-  // traiga "00503323" y el catálogo (tras pasar por Excel) tenga "503323",
-  // o al revés. Solo se recortan ceros si el código es puramente numérico.
   c = String(c==null ? "" : c).trim();
   if(/^\d+$/.test(c)){
     c = c.replace(/^0+/, "");
@@ -1577,6 +1910,14 @@ function normalizarCodigo(c){
   return c.toUpperCase();
 }
 
+// Convierte una fila cruda del Excel (tal cual la devuelve la librería
+// XLSX, con las claves siendo lo que sea que ponga en la cabecera de cada
+// columna) en el formato interno {codigo, descripcion, marca, modelo}. Se
+// admite variación en el nombre de las columnas (con o sin tilde, en
+// inglés, abreviado...) probando varias alternativas por campo con pick().
+// Nota: aquí el código NO se normaliza/rellena — se guarda tal cual venga
+// del Excel; es la comparación (normalizarCodigo, más arriba) la que se
+// encarga de que igualmente se encuentre al buscar.
 function mapCatalogRow(row){
   const norm = {};
   Object.keys(row).forEach(k=>{ norm[k.trim().toLowerCase()] = row[k]; });
@@ -1592,7 +1933,13 @@ function mapCatalogRow(row){
   };
 }
 
-/* ---------------- ajustes ---------------- */
+/* ---------------- ajustes ----------------
+   Mismos campos que la pantalla de alta inicial (checkOnboarding), pero
+   aquí siempre visibles y editables, más las secciones opcionales
+   (Google, EmailJS) y la copia de seguridad. */
+
+// Rellena todos los campos de Ajustes con lo que haya guardado
+// actualmente, y refresca el bloque de la cuenta de Google.
 function renderAjustes(){
   document.getElementById("sNombre").value = ajustes.nombre || "";
   document.getElementById("sEmpresa").value = ajustes.empresa || "";
@@ -1632,6 +1979,11 @@ document.getElementById("btnGuardarAjustes").addEventListener("click", ()=>{
   showToast("Ajustes guardados");
 });
 
+/* Copia de seguridad manual: como todo vive solo en este dispositivo (no
+   hay servidor central), esta es la única forma de no perder los datos si
+   se cambia de móvil o se borran los datos del navegador. Exporta/importa
+   TODO junto (inventario + catálogo + historial + ajustes) en un único
+   archivo .json legible. */
 document.getElementById("btnExportar").addEventListener("click", ()=>{
   const backup = { inventario, catalogo, ajustes, historial, exportado: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(backup,null,2)], { type:"application/json" });
@@ -1649,10 +2001,15 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
   reader.onload = (ev)=>{
     try{
       const data = JSON.parse(ev.target.result);
+      // Se pide confirmación porque esto SOBRESCRIBE todo lo que hubiera
+      // en el dispositivo — no se fusiona con lo existente.
       if(!confirm("Esto reemplazará el inventario, catálogo, historial y ajustes actuales de este dispositivo. ¿Continuar?")) return;
       inventario = data.inventario || [];
       catalogo = data.catalogo || { items:[], actualizado:null };
       historial = data.historial || [];
+      // Aquí se usa Object.assign en vez de sustituir del todo: así, si la
+      // copia es de una versión antigua sin algún campo nuevo (por ejemplo
+      // "provincia"), no se pierde nada, solo se rellena lo que sí trae.
       ajustes = Object.assign(ajustes, data.ajustes || {});
       saveJSON(STORE_KEYS.inventario, inventario);
       saveJSON(STORE_KEYS.catalogo, catalogo);
@@ -1669,10 +2026,31 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
   e.target.value = "";
 });
 
-/* ---------------- envío del inventario ---------------- */
+/* ============================================================================
+   ENVÍO DEL INVENTARIO
+   ============================================================================
+   openEnvio() muestra la hoja de confirmación con el resumen antes de
+   enviar; enviarInventario() es quien de verdad manda el correo, probando
+   estas vías EN ORDEN hasta que una funcione:
+     1) Gmail de la persona (intentarEnvioGmail, más arriba) — si tiene la
+        cuenta de Google vinculada. Es la única vía con adjuntos de verdad
+        garantizados (Excel + fotos) y sin abrir ninguna otra app.
+     2) EmailJS — si se configuró como alternativa en Ajustes. Envío
+        también silencioso, pero SIN adjuntos (limitación de su SDK
+        gratuito): solo manda el resumen en el cuerpo del correo.
+     3) Compartir del sistema operativo (Web Share) con el Excel adjunto,
+        dejando elegir al usuario con qué app enviarlo.
+     4) mailto — última alternativa si nada de lo anterior está disponible;
+        abre la app de correo con el texto ya escrito, pero sin adjuntos
+        (limitación del propio protocolo mailto, no se puede evitar).
+   Cada paso solo se intenta si el anterior falla o no está configurado. */
 document.getElementById("btnAbrirEnvio").addEventListener("click", openEnvio);
 document.getElementById("btnCerrarEnvio").addEventListener("click", ()=>document.getElementById("overlayEnvio").classList.remove("active"));
 
+// Prepara y muestra la hoja de "Enviar inventario": comprueba que haya
+// algo que enviar y los datos mínimos del RRPP, calcula los totales por
+// estado, y decide qué texto/botón mostrar según haya o no un método de
+// envío silencioso configurado (Google o EmailJS).
 function openEnvio(){
   if(inventario.length===0){ showToast("Añade al menos un equipo antes de enviar"); return; }
   if(!ajustes.emailDestino || !ajustes.nombre){
@@ -1734,6 +2112,11 @@ function openEnvio(){
   document.getElementById("overlayEnvio").classList.add("active");
 }
 
+// Genera el nombre del archivo Excel a partir del nombre/empresa del RRPP
+// y la fecha del inventario, quitando tildes y caracteres raros (un nombre
+// de archivo no puede llevar "/", tildes suelen dar problemas en algunos
+// sistemas...). Ej: "Promo Eventos SL" + "2026-09-17" →
+// "Inventario_Promo_Eventos_SL_2026-09-17.xlsx".
 function nombreArchivoExcel(ajustesParam){
   const a = ajustesParam || ajustes;
   const base = (a.empresa || a.nombre || "inventario")
@@ -1742,6 +2125,11 @@ function nombreArchivoExcel(ajustesParam){
   return `Inventario_${base||"equipos"}_${a.fechaInventario||hoyISO()}.xlsx`;
 }
 
+// ExcelJS entrega el archivo generado como un ArrayBuffer (bytes en crudo);
+// para poder adjuntarlo a un correo o descargarlo hace falta convertirlo a
+// base64 primero. Se trocea en bloques de 32 KB porque pasarle de golpe un
+// array muy grande a String.fromCharCode.apply() puede reventar el límite
+// de argumentos que aguanta el motor de JavaScript.
 function arrayBufferToBase64(buffer){
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -1752,10 +2140,33 @@ function arrayBufferToBase64(buffer){
   return btoa(binary);
 }
 
+/* Genera el Excel del inventario con DOS hojas: "Inventario" (una fila por
+   equipo, con el QR incrustado como imagen escaneable cuando lo tenga) y
+   "Datos RRPP" (los datos de quien lo hizo). Puede llamarse de dos formas:
+     - Sin argumentos: usa el inventario y ajustes ACTUALES (para el envío
+       normal o la descarga desde la vista de Inventario).
+     - Con argumentos (itemsParam, ajustesParam, fechaGuardadoISO): para
+       regenerar el Excel de un inventario ya archivado en el Historial,
+       con los datos de RRPP "congelados" tal como estaban en ese momento
+       (ver renderHistorial), en vez de los datos actuales.
+
+   Por qué esta función usa ExcelJS y no la librería XLSX (SheetJS) que se
+   usa para LEER el catálogo: la versión gratuita de SheetJS no permite
+   escribir imágenes dentro de las celdas, y aquí necesitamos incrustar el
+   QR como una imagen real y escaneable — por eso para ESCRIBIR el Excel se
+   usa ExcelJS (que sí lo soporta gratis), y XLSX se reserva solo para LEER
+   el Excel del catálogo al importarlo. Son dos librerías con roles
+   distintos, no es redundante. */
 async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoISO){
+  // Si se pasan argumentos, se usan esos (caso "reconstruir un inventario
+  // archivado"); si no, se toman las variables globales actuales.
   const items = itemsParam || inventario;
   const a = ajustesParam || ajustes;
   const totalUnidades = items.reduce((s,e)=> s + (Number(e.cantidad)||1), 0);
+  // El correo remitente puede venir ya "resuelto" (así se guarda en el
+  // historial, ver renderHistorial), o si no, se calcula igual que en el
+  // resto de la app: el de Google si hay sesión, si no el que se escribió
+  // a mano en Ajustes.
   const correoRemitenteFinal = a.correoRemitenteResuelto || (a.google && a.google.email) || a.correoRemitente || "";
 
   if(!window.ExcelJS) throw new Error("La librería para generar Excel no está disponible (revisa tu conexión)");
@@ -1774,7 +2185,7 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
     { header:"Estado", key:"estado", width:13 },
     { header:"Ubicación", key:"ubicacion", width:22 },
     { header:"Notas", key:"notas", width:26 },
-    { header:"QR (imagen)", key:"qrImg", width:15 },
+    { header:"QR (imagen)", key:"qrImg", width:15 },     // columna 9 (0-based) — ver el índice usado más abajo en addImage
     { header:"QR completo (texto)", key:"qrTexto", width:34 },
     { header:"Fecha de alta", key:"fecha", width:16 }
   ];
@@ -1786,6 +2197,11 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
   }else{
     for(let i=0;i<items.length;i++){
       const e = items[i];
+      // Primero se añade la fila de texto normal (incluida la columna de
+      // texto del QR); la columna "QR (imagen)" se deja vacía o con un
+      // guion aquí, porque la imagen en sí se superpone aparte, justo
+      // debajo, con addImage — ExcelJS no permite poner una imagen "como
+      // si fuera el valor de una celda", se ancla por coordenadas.
       wsInv.addRow({
         n: i+1,
         descripcion: e.descripcion || "",
@@ -1800,7 +2216,13 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
         qrTexto: e.qrCompleto || "—",
         fecha: e.fechaAlta ? formatFecha(e.fechaAlta) : ""
       });
-      const filaExcelIdx = i + 2; // 1 = cabecera
+      const filaExcelIdx = i + 2; // fila 1 = cabecera, así que el primer equipo cae en la fila 2
+      // Si este equipo se dio de alta escaneando un QR, se regenera esa
+      // misma imagen de QR (a partir del texto completo guardado, no solo
+      // del código de 6 dígitos) con la librería qrcode.min.js, y se ancla
+      // sobre la celda de la columna "QR (imagen)" de su fila. Al escanear
+      // esa imagen con el móvil se recupera EXACTAMENTE el mismo texto que
+      // se leyó al dar de alta el equipo.
       if(e.qrCompleto && window.QRCode){
         try{
           const dataUrl = await QRCode.toDataURL(e.qrCompleto, { width:160, margin:1 });
@@ -1837,6 +2259,12 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
   return { base64, filename: nombreArchivoExcel(a) };
 }
 
+// Arma el resumen del inventario como texto plano (una línea por equipo).
+// Se usa para el cuerpo del mailto y para el texto que acompaña al Excel
+// al compartir por Web Share — en ambos casos es el ÚNICO sitio donde
+// aparece el detalle si no hay Excel adjunto (mailto no admite adjuntos),
+// así que aquí sí se listan todos los equipos uno a uno, a diferencia del
+// cuerpo HTML de abajo que ya cuenta con el Excel adjunto para el detalle.
 function construirCuerpoTexto(){
   const lineas = inventario.map((e,i)=>
     `${i+1}. ${e.descripcion} [${e.codigo||"s/cod"}] x${Number(e.cantidad)||1} — ${[e.marca,e.modelo].filter(Boolean).join(" ")||"—"} — Estado: ${(ESTADOS[e.estado]||{}).label||e.estado} — Ubicación: ${e.ubicacion||"—"}${e.qrCompleto?" — QR guardado":""}`
@@ -1845,6 +2273,11 @@ function construirCuerpoTexto(){
   return `Inventario de equipos\nRRPP/Empresa: ${ajustes.nombre}${ajustes.empresa? " ("+ajustes.empresa+")":""}${ajustes.provincia? " — "+ajustes.provincia:""}\nClave: ${ajustes.clave||"—"}\nFecha del inventario: ${formatFechaCorta(ajustes.fechaInventario)}\nEnviado desde: ${(ajustes.google && ajustes.google.email) || ajustes.correoRemitente || "—"}\nTotal: ${inventario.length} líneas / ${totalUnidades} unidades\n\n${lineas.join("\n")}`;
 }
 
+// El cuerpo del correo cuando SÍ se manda con adjunto (Gmail o EmailJS):
+// un resumen corto con los datos del RRPP más una tabla HTML con todos los
+// equipos, a modo de vista previa dentro del propio correo — el detalle
+// "de verdad" para archivar va en el Excel adjunto, esta tabla es solo
+// para poder ojearlo sin necesidad de abrir el archivo.
 function construirCuerpoHTML(){
   const filas = inventario.map((e,i)=>`
     <tr>
@@ -1878,6 +2311,11 @@ function construirCuerpoHTML(){
   </table>`;
 }
 
+// El "director de orquesta" del envío: prueba las vías en orden (ver el
+// comentario grande al principio de esta sección) y se detiene en la
+// primera que funcione. Cada intento fallido se registra en la consola
+// (para poder depurar) y avisa con un toast antes de pasar al siguiente,
+// así el usuario ve que la app sigue intentándolo, no que se ha colgado.
 async function enviarInventario(){
   const botones = document.getElementById("envioBotones");
   botones.innerHTML = `<p class="small-note">Enviando…</p>`;
@@ -1930,6 +2368,15 @@ async function enviarInventario(){
   await enviarConCompartirOMailto();
 }
 
+// La alternativa cuando no hay Gmail ni EmailJS configurados (o ambos
+// fallaron): primero intenta la API "compartir" del propio sistema
+// operativo (el mismo panel que sale al pulsar "Compartir" en cualquier
+// app), adjuntando el Excel y hasta 8 fotos — esto SÍ deja elegir la app de
+// correo con adjuntos de verdad. Si el navegador no soporta compartir
+// archivos (bastante habitual en ordenadores de escritorio), cae al último
+// recurso: un enlace "mailto:" que abre la app de correo con el asunto y
+// el cuerpo ya escritos, pero SIN adjuntos (mailto no lo permite, es una
+// limitación del propio protocolo, no de esta app).
 async function enviarConCompartirOMailto(){
   const texto = construirCuerpoTexto();
   const asunto = `Inventario de equipos — ${ajustes.empresa || ajustes.nombre} — ${formatFechaCorta(ajustes.fechaInventario)}`;
@@ -1957,6 +2404,9 @@ async function enviarConCompartirOMailto(){
       }
     }
   }catch(err){
+    // Si la persona simplemente cerró el panel de compartir sin elegir
+    // nada (AbortError), no es un fallo real: se cierra la hoja sin más,
+    // sin caer al mailto (eso sería mandar el correo sin querer).
     if(err && err.name === "AbortError"){
       document.getElementById("overlayEnvio").classList.remove("active");
       return;
@@ -1972,13 +2422,24 @@ async function enviarConCompartirOMailto(){
   showToast("Se abrió tu app de correo con el inventario redactado");
 }
 
+// Guarda la fecha/hora del envío que se acaba de completar (con éxito), y
+// refresca la cabecera para que se vea el nuevo "Último envío: ...".
 function marcarEnviado(){
   ajustes.ultimoEnvio = new Date().toISOString();
   saveJSON(STORE_KEYS.ajustes, ajustes);
   renderHeader();
 }
 
-/* ---------------- historial de inventarios finalizados ---------------- */
+/* ============================================================================
+   HISTORIAL DE INVENTARIOS FINALIZADOS
+   ============================================================================
+   El inventario "de trabajo" (la variable "inventario") NO se acumula sin
+   límite: cuando se pulsa "Finalizar inventario y empezar uno nuevo", se
+   guarda una FOTO COMPLETA de cómo estaba todo en ese momento (los equipos
+   Y los datos del RRPP de entonces) dentro de "historial", y la lista de
+   trabajo se vacía para la siguiente ronda. Así cada ronda de inventario
+   queda separada y consultable/descargable por separado, sin mezclarse
+   con la actual ni con las futuras. */
 document.getElementById("btnFinalizarInventario").addEventListener("click", ()=>{
   if(inventario.length===0){ showToast("No hay equipos en el inventario actual"); return; }
   if(!confirm("Esto guardará el inventario actual en el Historial y vaciará la lista para empezar uno nuevo (no se acumula). ¿Continuar?")) return;
@@ -2015,6 +2476,10 @@ document.getElementById("btnFinalizarInventario").addEventListener("click", ()=>
   showToast("Inventario guardado en Historial. Lista vacía para uno nuevo.");
 });
 
+// Pinta la pestaña Historial: una tarjeta por cada inventario ya
+// archivado, con sus totales y dos botones — "Descargar Excel" (que
+// regenera el mismo Excel de dos hojas usando los datos CONGELADOS de ese
+// inventario, no los actuales) y "Eliminar" (borra esa entrada sin más).
 function renderHistorial(){
   const wrap = document.getElementById("historialListWrap");
   if(historial.length===0){
@@ -2070,14 +2535,25 @@ function renderHistorial(){
   });
 }
 
-/* ---------------- registro del service worker ---------------- */
+/* ---------------- registro del service worker ----------------
+   El service worker (sw.js) es quien hace posible que la app funcione sin
+   conexión y se pueda "instalar" como una app normal: cachea los archivos
+   de la app la primera vez que se visita. Se registra al final, después de
+   que la página haya cargado del todo, para no competir por ancho de banda
+   con la carga inicial. Si falla (navegador muy antiguo, o iOS en ciertos
+   casos), la app sigue funcionando igual, solo que sin caché offline. */
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
     navigator.serviceWorker.register("sw.js").catch(err=>console.warn("SW no registrado:", err));
   });
 }
 
-/* ---------------- arranque ---------------- */
+/* ---------------- arranque ----------------
+   Lo último que se ejecuta al cargar el script: pinta todas las vistas con
+   los datos ya cargados de localStorage, y por último comprueba si hace
+   falta mostrar la pantalla de alta inicial (checkOnboarding se queda con
+   la última palabra: si ajustes.configurado es false, tapa todo lo demás
+   con el formulario de bienvenida). */
 renderHeader();
 renderInventario();
 renderCatalogo();

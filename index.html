@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#2F4F42">
-<meta name="description" content="Registro y envío por correo del inventario de equipos de campo.">
+<meta name="description" content="Registro y envío por correo del inventario de equipos de campo.">
 <title>Inventario de Equipos</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
@@ -1699,21 +1699,51 @@ async function startScan(){
     await video.play();
     const canvas = document.getElementById("scanCanvas");
     const ctx = canvas.getContext("2d", { willReadFrequently:true });
-    // Bucle de lectura: en cada fotograma disponible, se copia la imagen
-    // del vídeo a un <canvas> invisible (jsQR necesita los píxeles en
-    // crudo, no puede leer directamente un <video>), y se le pasa a jsQR.
-    // Si no encuentra nada, se programa el siguiente intento con
+
+    // Si el navegador soporta el detector de códigos NATIVO (Chrome/Edge en
+    // Android y en muchos ordenadores), se usa como método principal: suele
+    // leer QR densos o en malas condiciones bastante mejor que jsQR, porque
+    // aprovecha el mismo motor de reconocimiento que usa el propio sistema
+    // operativo (el mismo que usan apps de cámara nativas). Si no está
+    // disponible (Firefox, Safari, navegadores antiguos...), se seguirá
+    // usando jsQR como hasta ahora — nadie se queda sin poder escanear.
+    let barcodeDetector = null;
+    if("BarcodeDetector" in window){
+      try{
+        const formatos = await BarcodeDetector.getSupportedFormats();
+        if(formatos.includes("qr_code")) barcodeDetector = new BarcodeDetector({ formats:["qr_code"] });
+      }catch(e){ /* si falla la comprobación, se sigue tranquilamente con jsQR */ }
+    }
+
+    // Bucle de lectura: en cada fotograma disponible, se intenta leer un QR.
+    // Con el detector nativo se le pasa el <video> directamente (es
+    // asíncrono, por eso "leyendo" evita lanzar una segunda detección antes
+    // de que termine la anterior). Sin detector nativo, se copia el
+    // fotograma a un <canvas> invisible (jsQR necesita los píxeles en
+    // crudo, no puede leer directamente un <video>) y se le pasa a jsQR.
+    // Si no se encuentra nada, se programa el siguiente intento con
     // requestAnimationFrame (sincronizado con el refresco de pantalla, no
-    // gasta más CPU de la necesaria). En cuanto encuentra un código, para
-    // el bucle (no hay "return" a un tick más) y pasa a onQRDetected.
-    const tick = ()=>{
+    // gasta más CPU de la necesaria). En cuanto se encuentra un código, se
+    // para el bucle (no hay más "requestAnimationFrame") y se pasa a
+    // onQRDetected.
+    let leyendo = false;
+    const tick = async ()=>{
       if(!scanStream) return;
-      if(video.readyState === video.HAVE_ENOUGH_DATA){
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        ctx.drawImage(video,0,0,canvas.width,canvas.height);
-        const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
-        if(code && code.data){ onQRDetected(code.data); return; }
+      if(video.readyState === video.HAVE_ENOUGH_DATA && !leyendo){
+        if(barcodeDetector){
+          leyendo = true;
+          try{
+            const codigos = await barcodeDetector.detect(video);
+            if(codigos && codigos.length && codigos[0].rawValue){ onQRDetected(codigos[0].rawValue); return; }
+          }catch(e){ /* algunos navegadores fallan puntualmente en ciertos fotogramas: se ignora y se reintenta en el siguiente */ }
+          leyendo = false;
+        }else{
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          ctx.drawImage(video,0,0,canvas.width,canvas.height);
+          const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+          const code = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
+          if(code && code.data){ onQRDetected(code.data); return; }
+        }
       }
       scanRAF = requestAnimationFrame(tick);
     };
@@ -1735,33 +1765,43 @@ function stopScan(){
 }
 
 // La alternativa a la cámara en directo: recibe un archivo de imagen (foto
-// tomada o elegida de la galería), lo dibuja en un <canvas> igual que se
-// haría con un fotograma de vídeo, y le pasa esos píxeles a jsQR una sola
-// vez. Se usa cuando la cámara en directo no está disponible o falla (ver
-// el botón "Subir foto del QR"), y suele funcionar en más navegadores
-// porque no depende de getUserMedia ni de peticiones de permiso en tiempo
-// real, solo de un simple selector de archivo.
-function decodificarQRDesdeArchivo(file){
-  return new Promise((resolve, reject)=>{
-    const img = new Image();
+// tomada o elegida de la galería) y busca un QR en ella. Primero lo intenta
+// con el detector nativo del navegador (si está disponible: suele acertar
+// mejor con fotos de peor calidad o QR densos), y si no está disponible o
+// no encuentra nada, cae en jsQR sobre esa misma imagen (dibujada en un
+// <canvas>, que es como jsQR necesita recibir los píxeles). Se usa cuando
+// la cámara en directo no está disponible o falla (ver el botón "Subir
+// foto del QR"), y suele funcionar en más navegadores porque no depende de
+// getUserMedia ni de peticiones de permiso en tiempo real, solo de un
+// simple selector de archivo.
+async function decodificarQRDesdeArchivo(file){
+  const img = await new Promise((resolve, reject)=>{
+    const image = new Image();
     const reader = new FileReader();
-    reader.onload = ()=>{
-      img.onload = ()=>{
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width; canvas.height = img.height;
-        const ctx = canvas.getContext("2d", { willReadFrequently:true });
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0,0,canvas.width,canvas.height);
-        const code = window.jsQR ? jsQR(data.data, data.width, data.height) : null;
-        if(code && code.data) resolve(code.data);
-        else reject(new Error("No se detectó ningún QR en la imagen"));
-      };
-      img.onerror = ()=>reject(new Error("No se pudo leer la imagen"));
-      img.src = reader.result;
-    };
+    reader.onload = ()=>{ image.onload = ()=>resolve(image); image.onerror = ()=>reject(new Error("No se pudo leer la imagen")); image.src = reader.result; };
     reader.onerror = ()=>reject(new Error("No se pudo leer el archivo"));
     reader.readAsDataURL(file);
   });
+
+  if("BarcodeDetector" in window){
+    try{
+      const formatos = await BarcodeDetector.getSupportedFormats();
+      if(formatos.includes("qr_code")){
+        const detector = new BarcodeDetector({ formats:["qr_code"] });
+        const codigos = await detector.detect(img);
+        if(codigos && codigos.length && codigos[0].rawValue) return codigos[0].rawValue;
+      }
+    }catch(e){ /* si el detector nativo falla, se prueba igualmente con jsQR más abajo */ }
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width; canvas.height = img.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently:true });
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const code = window.jsQR ? jsQR(data.data, data.width, data.height) : null;
+  if(code && code.data) return code.data;
+  throw new Error("No se detectó ningún QR en la imagen");
 }
 document.getElementById("btnSubirFotoQR").addEventListener("click", ()=>document.getElementById("fotoQRInput").click());
 document.getElementById("fotoQRInput").addEventListener("change", async (e)=>{
@@ -2182,6 +2222,7 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
   const wsInv = wb.addWorksheet("Inventario");
   wsInv.columns = [
     { header:"#", key:"n", width:5 },
+    { header:"Foto", key:"fotoImg", width:12 },           // columna 1 (0-based)
     { header:"Descripción", key:"descripcion", width:28 },
     { header:"Código", key:"codigo", width:14 },
     { header:"Cantidad", key:"cantidad", width:9 },
@@ -2190,7 +2231,7 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
     { header:"Estado", key:"estado", width:13 },
     { header:"Ubicación", key:"ubicacion", width:22 },
     { header:"Notas", key:"notas", width:26 },
-    { header:"QR (imagen)", key:"qrImg", width:15 },     // columna 9 (0-based) — ver el índice usado más abajo en addImage
+    { header:"QR (imagen)", key:"qrImg", width:15 },       // columna 10 (0-based) — ver el índice usado más abajo en addImage
     { header:"QR completo (texto)", key:"qrTexto", width:34 },
     { header:"Fecha de alta", key:"fecha", width:16 }
   ];
@@ -2203,12 +2244,13 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
     for(let i=0;i<items.length;i++){
       const e = items[i];
       // Primero se añade la fila de texto normal (incluida la columna de
-      // texto del QR); la columna "QR (imagen)" se deja vacía o con un
-      // guion aquí, porque la imagen en sí se superpone aparte, justo
-      // debajo, con addImage — ExcelJS no permite poner una imagen "como
-      // si fuera el valor de una celda", se ancla por coordenadas.
+      // texto del QR); las columnas "Foto" y "QR (imagen)" se dejan vacías
+      // o con un guion aquí, porque las imágenes en sí se superponen aparte,
+      // justo debajo, con addImage — ExcelJS no permite poner una imagen
+      // "como si fuera el valor de una celda", se ancla por coordenadas.
       wsInv.addRow({
         n: i+1,
+        fotoImg: e.foto ? "" : "—",
         descripcion: e.descripcion || "",
         codigo: e.codigo || "",
         cantidad: Number(e.cantidad)||1,
@@ -2222,6 +2264,22 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
         fecha: e.fechaAlta ? formatFecha(e.fechaAlta) : ""
       });
       const filaExcelIdx = i + 2; // fila 1 = cabecera, así que el primer equipo cae en la fila 2
+      let filaConImagen = false;
+      // Si el equipo tiene foto (la que se hace/elige en el formulario), se
+      // incrusta en la columna "Foto" de su fila. La foto ya se guarda
+      // redimensionada y en JPEG (ver resizeImageToDataURL), así que aquí
+      // solo hay que separar el prefijo "data:image/jpeg;base64," del
+      // contenido en sí antes de pasárselo a ExcelJS.
+      if(e.foto){
+        try{
+          const partes = /^data:image\/(\w+);base64,(.*)$/.exec(e.foto);
+          const extension = partes ? (partes[1]==="jpg" ? "jpeg" : partes[1]) : "jpeg";
+          const base64Foto = partes ? partes[2] : e.foto.split(",")[1];
+          const imgFotoId = wb.addImage({ base64: base64Foto, extension });
+          wsInv.addImage(imgFotoId, { tl:{ col:1, row: filaExcelIdx-1 }, ext:{ width:64, height:64 } });
+          filaConImagen = true;
+        }catch(err){ console.warn("No se pudo incrustar la foto de la fila", i, err); }
+      }
       // Si este equipo se dio de alta escaneando un QR, se regenera esa
       // misma imagen de QR (a partir del texto completo guardado, no solo
       // del código de 6 dígitos) con la librería qrcode.min.js, y se ancla
@@ -2233,10 +2291,11 @@ async function construirExcelInventario(itemsParam, ajustesParam, fechaGuardadoI
           const dataUrl = await QRCode.toDataURL(e.qrCompleto, { width:160, margin:1 });
           const imgId = wb.addImage({ base64: dataUrl, extension: "png" });
           // tl.row/col son 0-based; la cabecera ocupa la fila 0, así que la fila i son ítems empieza en 1
-          wsInv.addImage(imgId, { tl:{ col:9, row: filaExcelIdx-1 }, ext:{ width:56, height:56 } });
-          wsInv.getRow(filaExcelIdx).height = 44;
+          wsInv.addImage(imgId, { tl:{ col:10, row: filaExcelIdx-1 }, ext:{ width:56, height:56 } });
+          filaConImagen = true;
         }catch(err){ console.warn("No se pudo generar el QR de la fila", i, err); }
       }
+      if(filaConImagen) wsInv.getRow(filaExcelIdx).height = 50;
     }
   }
 
